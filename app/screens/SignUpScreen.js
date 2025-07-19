@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, StatusBar, Alert, SafeAreaView } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, StatusBar, Alert } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { auth } from '../config/firebase';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
@@ -29,8 +30,8 @@ const SignUpScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
       <View style={styles.content}>
         <Text style={styles.title}>Create an Account</Text>
         <TextInput style={styles.input} placeholder="Full Name" placeholderTextColor="#90A4AE" value={fullName} onChangeText={setFullName} />
@@ -48,13 +49,59 @@ const SignUpScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { flex: 1, justifyContent: 'center', padding: 30 },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#1A2E35', marginBottom: 40 },
-  input: { borderBottomWidth: 1, borderColor: '#CFD8DC', fontSize: 18, paddingVertical: 15, marginBottom: 25, color: '#1A2E35' },
-  buttonPrimary: { backgroundColor: '#00BFA5', paddingVertical: 16, borderRadius: 8, alignItems: 'center', marginTop: 20, marginBottom: 30 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F8F9FA' 
+  },
+  content: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    padding: 30 
+  },
+  title: { 
+    fontSize: 28, 
+    fontWeight: 'bold', 
+    color: '#1A1A1A', 
+    marginBottom: 40,
+    textAlign: 'center'
+  },
+  input: { 
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1, 
+    borderColor: '#E0E0E0', 
+    borderRadius: 12,
+    fontSize: 16, 
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    marginBottom: 20,
+    color: '#1A1A1A',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  buttonPrimary: { 
+    backgroundColor: '#00BFA5', 
+    paddingVertical: 18, 
+    borderRadius: 12, 
+    alignItems: 'center', 
+    marginTop: 20, 
+    marginBottom: 30,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
   buttonTextPrimary: { color: '#fff', fontSize: 18, fontWeight: '600' },
-  footerText: { textAlign: 'center', color: '#546E7A', fontSize: 15 },
+  footerText: { textAlign: 'center', color: '#666', fontSize: 15 },
   footerLink: { color: '#00BFA5', fontWeight: 'bold' }
 });
 

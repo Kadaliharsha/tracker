@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, StatusBar, Alert, SafeAreaView, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, StatusBar, Alert, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { auth } from '../config/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -24,33 +25,134 @@ const LoginScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" />
+    <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
       <View style={styles.content}>
-        <Image source={require('../assets/logo-growth.png')} style={styles.logo} />
-        <Text style={styles.title}>Welcome Back</Text>
-        <TextInput style={styles.input} placeholder="Email Address" placeholderTextColor="#90A4AE" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-        <TextInput style={styles.input} placeholder="Password" placeholderTextColor="#90A4AE" value={password} onChangeText={setPassword} secureTextEntry />
-        <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin}>
-          <Text style={styles.buttonTextPrimary}>Continue</Text>
-        </TouchableOpacity>
+        <View style={styles.header}>
+          <Image source={require('../assets/logo-growth.png')} style={styles.logo} />
+          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.subtitle}>Sign in to continue tracking your finances</Text>
+        </View>
+        
+        <View style={styles.formContainer}>
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Email Address</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Enter your email" 
+              placeholderTextColor="#90A4AE" 
+              value={email} 
+              onChangeText={setEmail} 
+              keyboardType="email-address" 
+              autoCapitalize="none" 
+            />
+          </View>
+          
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Password</Text>
+            <TextInput 
+              style={styles.input} 
+              placeholder="Enter your password" 
+              placeholderTextColor="#90A4AE" 
+              value={password} 
+              onChangeText={setPassword} 
+              secureTextEntry 
+            />
+          </View>
+          
+          <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin}>
+            <Text style={styles.buttonTextPrimary}>Sign In</Text>
+          </TouchableOpacity>
+        </View>
+        
         <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
           <Text style={styles.footerText}>Don't have an account? <Text style={styles.footerLink}>Sign Up</Text></Text>
         </TouchableOpacity>
-      </View>
+        </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  content: { flex: 1, justifyContent: 'center', padding: 30 },
-  logo: { width: 120, height: 120, resizeMode: 'contain', alignSelf: 'center', marginBottom: 30 },
-  title: { fontSize: 32, fontWeight: 'bold', color: '#1A2E35', textAlign: 'center', marginBottom: 40 },
-  input: { borderBottomWidth: 1, borderColor: '#CFD8DC', fontSize: 18, paddingVertical: 15, marginBottom: 25, color: '#1A2E35' },
-  buttonPrimary: { backgroundColor: '#00BFA5', paddingVertical: 16, borderRadius: 8, alignItems: 'center', marginTop: 20, marginBottom: 30 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#F8F9FA' 
+  },
+  content: { 
+    flex: 1, 
+    justifyContent: 'center', 
+    padding: 30 
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logo: { 
+    width: 100, 
+    height: 100, 
+    resizeMode: 'contain', 
+    alignSelf: 'center', 
+    marginBottom: 24 
+  },
+  title: { 
+    fontSize: 28, 
+    fontWeight: 'bold', 
+    color: '#1A1A1A', 
+    textAlign: 'center', 
+    marginBottom: 8 
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
+  },
+  formContainer: {
+    marginBottom: 30,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1A1A1A',
+    marginBottom: 8,
+  },
+  input: { 
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1, 
+    borderColor: '#E0E0E0', 
+    borderRadius: 12,
+    fontSize: 16, 
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    color: '#1A1A1A',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  buttonPrimary: { 
+    backgroundColor: '#00BFA5', 
+    paddingVertical: 18, 
+    borderRadius: 12, 
+    alignItems: 'center', 
+    marginTop: 20,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
   buttonTextPrimary: { color: '#fff', fontSize: 18, fontWeight: '600' },
-  footerText: { textAlign: 'center', color: '#546E7A', fontSize: 15 },
+  footerText: { textAlign: 'center', color: '#666', fontSize: 15 },
   footerLink: { color: '#00BFA5', fontWeight: 'bold' }
 });
 
