@@ -1,75 +1,102 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, StatusBar } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, StatusBar, Keyboard, TouchableWithoutFeedback, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { auth } from '../config/firebase';
 import { signOut } from 'firebase/auth';
+import TransactionItem from '../components/TransactionItem';
+import BalanceCard from '../components/BalanceCard';
+import ActionButton from '../components/ActionButton';
+import { getTransactions, deleteTransaction } from '../utils/storage';
+
 
 const DashboardScreen = () => {
   const navigation = useNavigation();
+  const isFocused = useIsFocused();
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      // Replace the dashboard with the login screen
-      navigation.replace('Login'); 
-    } catch (error) {
-      Alert.alert('Logout Failed', error.message);
-    }
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const data = await getTransactions();
+      setTransactions(data);
+      setLoading(false);
+    };
+    if (isFocused) fetchData();
+  }, [isFocused]);
+
+  const handleDelete = (id) => {
+    Alert.alert(
+      'Delete Transaction',
+      'Are you sure you want to delete this transaction?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => actuallyDelete(id)
+        }
+      ]
+    );
   };
+
+  const actuallyDelete = async (id) => {
+    // Optimistically update UI
+    setTransactions(prev => prev.filter(txn => txn.id !== id));
+    // Update AsyncStorage in the background
+    await deleteTransaction(id);
+  };
+
+  const totalIncome = transactions
+    .filter(txn => txn.type === 'income')
+    .reduce((sum, txn) => sum + Number(txn.amount), 0);
+
+  const totalExpenses = transactions
+  .filter(txn => txn.type === 'expense')
+  .reduce((sum, txn) => sum + Number(txn.amount), 0);
+
+  const totalBalance = totalIncome - totalExpenses;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
-      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
           {/* Header Section */}
           <View style={styles.header}>
             <View>
               <Text style={styles.greeting}>Hello! 👋</Text>
               <Text style={styles.subtitle}>Track your money smartly</Text>
             </View>
-            <TouchableOpacity style={styles.profileButton} onPress={handleLogout}>
+            <TouchableOpacity style={styles.profileButton} onPress={async () => {
+              navigation.replace('Login');
+            }}>
               <Text style={styles.profileButtonText}>Logout</Text>
             </TouchableOpacity>
           </View>
 
           {/* Balance Card */}
-          <View style={styles.balanceCard}>
-            <Text style={styles.balanceLabel}>Total Balance</Text>
-            <Text style={styles.balanceAmount}>₹25,000</Text>
-            <View style={styles.balanceStats}>
-              <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Income</Text>
-                <Text style={styles.statAmount}>₹35,000</Text>
-              </View>
-              <View style={styles.statDivider} />
-              <View style={styles.statItem}>
-                <Text style={styles.statLabel}>Expenses</Text>
-                <Text style={styles.statAmount}>₹10,000</Text>
-              </View>
-            </View>
-          </View>
+          <BalanceCard 
+            balance={`₹${totalBalance.toFixed(2)}`}
+            income={`₹${totalIncome.toFixed(2)}`}
+            expenses={`₹${totalExpenses.toFixed(2)}`}
+          />
 
           {/* Quick Actions */}
           <View style={styles.quickActions}>
             <Text style={styles.sectionTitle}>Quick Actions</Text>
             <View style={styles.actionButtons}>
-              <TouchableOpacity 
-                style={styles.actionButton} 
+              <ActionButton 
+                icon="+"
+                label="Add Transaction"
                 onPress={() => navigation.navigate('AddTransaction')}
-              >
-                <View style={styles.actionIcon}>
-                  <Text style={styles.actionIconText}>+</Text>
-                </View>
-                <Text style={styles.actionText}>Add Transaction</Text>
-              </TouchableOpacity>
-              
-              <TouchableOpacity style={styles.actionButton}>
-                <View style={styles.actionIcon}>
-                  <Text style={styles.actionIconText}>📊</Text>
-                </View>
-                <Text style={styles.actionText}>Analytics</Text>
-              </TouchableOpacity>
+              />
+              <ActionButton 
+                icon="📊"
+                label="Analytics"
+                onPress={() => {}}
+              />
             </View>
           </View>
 
@@ -82,31 +109,36 @@ const DashboardScreen = () => {
               </TouchableOpacity>
             </View>
             
-            <View style={styles.transactionList}>
-              <View style={styles.transactionItem}>
-                <View style={styles.transactionIcon}>
-                  <Text style={styles.transactionIconText}>🍕</Text>
-                </View>
-                <View style={styles.transactionDetails}>
-                  <Text style={styles.transactionTitle}>Pizza</Text>
-                  <Text style={styles.transactionCategory}>Food & Dining</Text>
-                </View>
-                <Text style={styles.transactionAmount}>-₹500</Text>
+            {loading ? (
+              <ActivityIndicator size="large" color="#00BFA5" style={{ margin: 32 }} />
+            ) : (
+              <View style={styles.transactionList}>
+                {transactions.length === 0 ? (
+                  <View style={{ alignItems: 'center', padding: 32 }}>
+                    <Text style={{ fontSize: 40, marginBottom: 8 }}>🗒️</Text>
+                    <Text style={{ textAlign: 'center', color: '#888', fontSize: 16 }}>
+                      No transactions yet. Tap “Add Transaction” to get started!
+                    </Text>
+                  </View>
+                ) : (
+                  transactions.map(txn => (
+                    <TransactionItem
+                      key={txn.id}
+                      icon={txn.type === 'income' ? '💰' : '💸'}
+                      title={txn.description}
+                      category={txn.category}
+                      amount={`${txn.type === 'income' ? '+' : '-'}₹${Number(txn.amount).toFixed(2)}`}
+                      type={txn.type}
+                      date={new Date(txn.date).toLocaleDateString()}
+                      onLongPress={() => handleDelete(txn.id)}
+                    />
+                  ))
+                )}
               </View>
-              
-              <View style={styles.transactionItem}>
-                <View style={styles.transactionIcon}>
-                  <Text style={styles.transactionIconText}>💰</Text>
-                </View>
-                <View style={styles.transactionDetails}>
-                  <Text style={styles.transactionTitle}>Salary</Text>
-                  <Text style={styles.transactionCategory}>Income</Text>
-                </View>
-                <Text style={styles.transactionAmount}>+₹35,000</Text>
-              </View>
-            </View>
+            )}
           </View>
         </ScrollView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 };
@@ -273,6 +305,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#F0F0F0',
+    marginBottom: 4,
   },
   transactionIcon: {
     width: 40,
@@ -303,7 +336,14 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#FF6B6B',
+    minWidth: 80,
+    textAlign: 'right',
   },
+  transactionDate: {
+    fontSize: 11,
+    color: '#AAA',
+    marginTop: 2,
+  }
 });
 
 export default DashboardScreen;

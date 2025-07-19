@@ -11,6 +11,8 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import TypeSelector from '../components/TypeSelector';
+import { saveTransaction } from '../utils/storage';
 
 const AddTransactionScreen = () => {
   const navigation = useNavigation();
@@ -19,7 +21,7 @@ const AddTransactionScreen = () => {
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('');
 
-  const handleSaveTransaction = () => {
+  const handleSaveTransaction = async () => {
     if (!amount || !description) {
       Alert.alert('Error', 'Please fill in amount and description.');
       return;
@@ -34,119 +36,89 @@ const AddTransactionScreen = () => {
       date: new Date().toISOString(),
     };
 
-    // For now, we'll just show an alert. Later we'll save to Firebase
-    Alert.alert(
-      'Success', 
-      `Transaction saved: ${transactionType} of $${amount}`,
-      [
-        { 
-          text: 'OK', 
-          onPress: () => {
-            // Clear form
-            setAmount('');
-            setDescription('');
-            setCategory('');
-            navigation.goBack();
+    // Save to AsyncStorage
+    const success = await saveTransaction(transaction);
+
+    if (success) {
+      Alert.alert(
+        'Success',
+        `Transaction saved: ${transactionType} of $${amount}`,
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              setAmount('');
+              setDescription('');
+              setCategory('');
+              navigation.goBack();
+            }
           }
-        }
-      ]
-    );
+        ]
+      );
+    } else {
+      Alert.alert('Error', 'Failed to save transaction. Please try again.');
+    }
   };
+  
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
-          {/* Header */}
-          <View style={styles.header}>
-            <Text style={styles.title}>Add Transaction</Text>
-            <Text style={styles.subtitle}>Track your money flow</Text>
-          </View>
-          
-          {/* Transaction Type Selector */}
-          <View style={styles.typeSelector}>
-            <TouchableOpacity 
-              style={[
-                styles.typeButton, 
-                transactionType === 'expense' && styles.activeTypeButton
-              ]}
-              onPress={() => setTransactionType('expense')}
-            >
-              <View style={styles.typeButtonContent}>
-                <Text style={styles.typeButtonIcon}>💸</Text>
-                <Text style={[
-                  styles.typeButtonText,
-                  transactionType === 'expense' && styles.activeTypeButtonText
-                ]}>
-                  Expense
-                </Text>
-              </View>
-            </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={[
-                styles.typeButton, 
-                transactionType === 'income' && styles.activeTypeButton
-              ]}
-              onPress={() => setTransactionType('income')}
-            >
-              <View style={styles.typeButtonContent}>
-                <Text style={styles.typeButtonIcon}>💰</Text>
-                <Text style={[
-                  styles.typeButtonText,
-                  transactionType === 'income' && styles.activeTypeButtonText
-                ]}>
-                  Income
-                </Text>
-              </View>
-            </TouchableOpacity>
-          </View>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Add Transaction</Text>
+          <Text style={styles.subtitle}>Track your money flow</Text>
+        </View>
+        
+        {/* Transaction Type Selector */}
+        <TypeSelector transactionType={transactionType} setTransactionType={setTransactionType} />
 
-          {/* Amount Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Amount</Text>
-            <View style={styles.amountContainer}>
-              <Text style={styles.currencySymbol}>₹</Text>
-              <TextInput
-                style={styles.amountInput}
-                placeholder="0.00"
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="numeric"
-                placeholderTextColor="#90A4AE"
-              />
-            </View>
-          </View>
-
-          {/* Description Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Description</Text>
+        {/* Amount Input */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Amount</Text>
+          <View style={styles.amountContainer}>
+            <Text style={styles.currencySymbol}>₹</Text>
             <TextInput
-              style={styles.input}
-              placeholder="What was this for?"
-              value={description}
-              onChangeText={setDescription}
+              style={styles.amountInput}
+              placeholder="0.00"
+              value={amount}
+              onChangeText={setAmount}
+              keyboardType="numeric"
               placeholderTextColor="#90A4AE"
             />
           </View>
+        </View>
 
-          {/* Category Input */}
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Category</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="e.g., Food, Transport, Shopping"
-              value={category}
-              onChangeText={setCategory}
-              placeholderTextColor="#90A4AE"
-            />
-          </View>
+        {/* Description Input */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Description</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="What was this for?"
+            value={description}
+            onChangeText={setDescription}
+            placeholderTextColor="#90A4AE"
+          />
+        </View>
 
-          {/* Save Button */}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveTransaction}>
-            <Text style={styles.saveButtonText}>Save Transaction</Text>
-          </TouchableOpacity>
-                  </ScrollView>
+        {/* Category Input */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Category</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="e.g., Food, Transport, Shopping"
+            value={category}
+            onChangeText={setCategory}
+            placeholderTextColor="#90A4AE"
+          />
+        </View>
+
+        {/* Save Button */}
+        <TouchableOpacity style={styles.saveButton} onPress={handleSaveTransaction}>
+          <Text style={styles.saveButtonText}>Save Transaction</Text>
+        </TouchableOpacity>
+      </ScrollView>
     </SafeAreaView>
   );
 };

@@ -8,9 +8,9 @@ import AppNavigator from './app/navigation/AppNavigator';
 export default function App() {
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
-        <AppNavigator />
-      </NavigationContainer>
+    <NavigationContainer>
+      <AppNavigator />
+    </NavigationContainer>
     </SafeAreaProvider>
   );
 }

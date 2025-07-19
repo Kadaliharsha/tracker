@@ -13,18 +13,18 @@ const GetStartedScreen = ({ navigation }) => {
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
       <View style={styles.content}>
-        <Image source={require('../assets/loginlogo.png')} style={styles.logo} />
-        <Text style={styles.title}>Welcome to Salary Expense Tracker</Text>
-        <Text style={styles.description}>
-          Track your income and expenses effortlessly. Get insights, manage your budget, and achieve your financial goals!
-        </Text>
-        <TouchableOpacity style={styles.button} onPress={() => handleProceed('Login')}>
-          <Text style={styles.buttonText}>Login</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={[styles.button, styles.signupButton]} onPress={() => handleProceed('SignUp')}>
-          <Text style={styles.buttonText}>Sign Up</Text>
-        </TouchableOpacity>
-      </View>
+      <Image source={require('../assets/loginlogo.png')} style={styles.logo} />
+      <Text style={styles.title}>Welcome to Salary Expense Tracker</Text>
+      <Text style={styles.description}>
+        Track your income and expenses effortlessly. Get insights, manage your budget, and achieve your financial goals!
+      </Text>
+      <TouchableOpacity style={styles.button} onPress={() => handleProceed('Login')}>
+        <Text style={styles.buttonText}>Login</Text>
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.button, styles.signupButton]} onPress={() => handleProceed('SignUp')}>
+        <Text style={styles.buttonText}>Sign Up</Text>
+      </TouchableOpacity>
+    </View>
     </SafeAreaView>
   );
 };
