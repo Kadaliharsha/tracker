@@ -2,6 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, StatusBar, Keyboard, TouchableWithoutFeedback, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { onSnapshot, collection, query, orderBy } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { getAuth } from 'firebase/auth';
+import { migrateAsyncStorageToFirestore } from '../utils/storage';
+
 import { auth } from '../config/firebase';
 import { signOut } from 'firebase/auth';
 import TransactionItem from '../components/TransactionItem';
@@ -17,14 +22,35 @@ const DashboardScreen = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true);
-      const data = await getTransactions();
-      setTransactions(data);
-      setLoading(false);
+    let unsubscribe;
+
+    const setup = async () => {
+      // 1. Run one-time migration (safe to call every time, only runs once)
+      await migrateAsyncStorageToFirestore();
+
+      // 2. Get current user
+      const user = getAuth().currentUser;
+      if (!user) return;
+
+      // 3. Set up Firestore real-time listener
+      const q = query(
+        collection(db, 'users', user.uid, 'transactions'),
+        orderBy('date', 'desc')
+      );
+      unsubscribe = onSnapshot(q, (snapshot) => {
+        setTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+      }, (error) => {
+        console.error('Firestore onSnapshot error:', error);
+      });
     };
-    if (isFocused) fetchData();
-  }, [isFocused]);
+
+    setup();
+
+    // Cleanup listener on unmount
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
 
   const handleDelete = (id) => {
     Alert.alert(
@@ -42,10 +68,10 @@ const DashboardScreen = () => {
   };
 
   const actuallyDelete = async (id) => {
-    // Optimistically update UI
+    console.log('Attempting to delete Firestore doc ID:', id);
     setTransactions(prev => prev.filter(txn => txn.id !== id));
-    // Update AsyncStorage in the background
-    await deleteTransaction(id);
+    const result = await deleteTransaction(id);
+    console.log('Delete result:', result);
   };
 
   const totalIncome = transactions
@@ -95,7 +121,7 @@ const DashboardScreen = () => {
               <ActionButton 
                 icon="📊"
                 label="Analytics"
-                onPress={() => {}}
+                onPress={() => navigation.navigate('Analytics')}
               />
             </View>
           </View>
@@ -106,8 +132,8 @@ const DashboardScreen = () => {
               <Text style={styles.sectionTitle}>Recent Transactions</Text>
               <TouchableOpacity>
                 <Text style={styles.viewAllText}>View All</Text>
-              </TouchableOpacity>
-            </View>
+        </TouchableOpacity>
+      </View>
             
             {loading ? (
               <ActivityIndicator size="large" color="#00BFA5" style={{ margin: 32 }} />
@@ -121,18 +147,21 @@ const DashboardScreen = () => {
                     </Text>
                   </View>
                 ) : (
-                  transactions.map(txn => (
-                    <TransactionItem
-                      key={txn.id}
-                      icon={txn.type === 'income' ? '💰' : '💸'}
-                      title={txn.description}
-                      category={txn.category}
-                      amount={`${txn.type === 'income' ? '+' : '-'}₹${Number(txn.amount).toFixed(2)}`}
-                      type={txn.type}
-                      date={new Date(txn.date).toLocaleDateString()}
-                      onLongPress={() => handleDelete(txn.id)}
-                    />
-                  ))
+                  transactions.map(txn => {
+                    console.log('Rendering txn:', txn.id, txn);
+                    return (
+                      <TransactionItem
+                        key={txn.id}
+                        icon={txn.type === 'income' ? '💰' : '💸'}
+                        title={txn.description}
+                        category={txn.category}
+                        amount={`${txn.type === 'income' ? '+' : '-'}₹${Number(txn.amount).toFixed(2)}`}
+                        type={txn.type}
+                        date={new Date(txn.date).toLocaleDateString()}
+                        onLongPress={() => handleDelete(txn.id)}
+                      />
+                    );
+                  })
                 )}
               </View>
             )}

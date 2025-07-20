@@ -13,32 +13,60 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import TypeSelector from '../components/TypeSelector';
 import { saveTransaction } from '../utils/storage';
+import { Picker } from '@react-native-picker/picker';
+import DateTimePickerModal from 'react-native-modal-datetime-picker';
+
+const EXPENSE_CATEGORIES = [
+  'Food',
+  'Transport',
+  'Rent',
+  'Utilities',
+  'Shopping',
+  'Entertainment',
+  'Health',
+  'Other'
+];
+
+const INCOME_CATEGORIES = [
+  'Salary',
+  'Freelance',
+  'Gift',
+  'Interest',
+  'Refund',
+  'Other'
+];
 
 const AddTransactionScreen = () => {
   const navigation = useNavigation();
-  const [transactionType, setTransactionType] = useState('expense'); // 'income' or 'expense'
+  const [transactionType, setTransactionType] = useState('expense');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
+  const [category, setCategory] = useState(EXPENSE_CATEGORIES[0]);
+  const [customCategory, setCustomCategory] = useState('');
+  const [date, setDate] = useState(new Date());
+  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+
+  React.useEffect(() => {
+    setCategory(
+      transactionType === 'income' ? INCOME_CATEGORIES[0] : EXPENSE_CATEGORIES[0]
+    );
+    setCustomCategory('');
+  }, [transactionType]);
 
   const handleSaveTransaction = async () => {
-    if (!amount || !description) {
-      Alert.alert('Error', 'Please fill in amount and description.');
+    if (!amount) {
+      Alert.alert('Error', 'Please enter an amount.');
       return;
     }
-
+    const finalCategory = category === 'Other' ? (customCategory || 'Other') : category;
     const transaction = {
-      id: Date.now().toString(),
       type: transactionType,
       amount: parseFloat(amount),
       description: description,
-      category: category || 'Other',
-      date: new Date().toISOString(),
+      category: finalCategory,
+      date: date.toISOString(), // Use the selected date
     };
-
-    // Save to AsyncStorage
     const success = await saveTransaction(transaction);
-
     if (success) {
       Alert.alert(
         'Success',
@@ -49,7 +77,9 @@ const AddTransactionScreen = () => {
             onPress: () => {
               setAmount('');
               setDescription('');
-              setCategory('');
+              setCategory(transactionType === 'income' ? INCOME_CATEGORIES[0] : EXPENSE_CATEGORIES[0]);
+              setCustomCategory('');
+              setDate(new Date());
               navigation.goBack();
             }
           }
@@ -59,7 +89,8 @@ const AddTransactionScreen = () => {
       Alert.alert('Error', 'Failed to save transaction. Please try again.');
     }
   };
-  
+
+  const categoryList = transactionType === 'income' ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
@@ -70,10 +101,8 @@ const AddTransactionScreen = () => {
           <Text style={styles.title}>Add Transaction</Text>
           <Text style={styles.subtitle}>Track your money flow</Text>
         </View>
-        
         {/* Transaction Type Selector */}
         <TypeSelector transactionType={transactionType} setTransactionType={setTransactionType} />
-
         {/* Amount Input */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Amount</Text>
@@ -89,31 +118,64 @@ const AddTransactionScreen = () => {
             />
           </View>
         </View>
-
-        {/* Description Input */}
+        {/* Description Input (optional) */}
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Description</Text>
+          <Text style={styles.label}>Description (optional)</Text>
           <TextInput
             style={styles.input}
-            placeholder="What was this for?"
+            placeholder={transactionType === 'income' ? "e.g., July Salary, Upwork payment" : "e.g., Lunch at Subway, Uber ride"}
             value={description}
             onChangeText={setDescription}
             placeholderTextColor="#90A4AE"
           />
         </View>
-
-        {/* Category Input */}
+        {/* Category Picker */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Category</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="e.g., Food, Transport, Shopping"
-            value={category}
-            onChangeText={setCategory}
-            placeholderTextColor="#90A4AE"
+          <View style={styles.pickerWrapper}>
+            <Picker
+              selectedValue={category}
+              onValueChange={setCategory}
+              style={styles.picker}
+            >
+              {categoryList.map(cat => (
+                <Picker.Item label={cat} value={cat} key={cat} />
+              ))}
+            </Picker>
+          </View>
+          {category === 'Other' && (
+            <TextInput
+              style={styles.input}
+              placeholder="Enter custom category"
+              value={customCategory}
+              onChangeText={setCustomCategory}
+              placeholderTextColor="#90A4AE"
+            />
+          )}
+        </View>
+        {/* Date Picker */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Date</Text>
+          <TouchableOpacity
+            style={styles.dateButton}
+            onPress={() => setDatePickerVisibility(true)}
+          >
+            <Text style={styles.dateButtonText}>
+              {date.toLocaleDateString()}
+            </Text>
+          </TouchableOpacity>
+          <DateTimePickerModal
+            isVisible={isDatePickerVisible}
+            mode="date"
+            date={date}
+            onConfirm={selectedDate => {
+              setDate(selectedDate);
+              setDatePickerVisibility(false);
+            }}
+            onCancel={() => setDatePickerVisibility(false)}
+            maximumDate={new Date()} // Prevent future dates if you want
           />
         </View>
-
         {/* Save Button */}
         <TouchableOpacity style={styles.saveButton} onPress={handleSaveTransaction}>
           <Text style={styles.saveButtonText}>Save Transaction</Text>
@@ -146,45 +208,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     textAlign: 'center',
-  },
-  typeSelector: {
-    flexDirection: 'row',
-    marginBottom: 30,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    padding: 6,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  typeButton: {
-    flex: 1,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderRadius: 8,
-  },
-  typeButtonContent: {
-    alignItems: 'center',
-  },
-  typeButtonIcon: {
-    fontSize: 20,
-    marginBottom: 4,
-  },
-  activeTypeButton: {
-    backgroundColor: '#00BFA5',
-  },
-  typeButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#666',
-  },
-  activeTypeButtonText: {
-    color: '#fff',
   },
   inputContainer: {
     marginBottom: 24,
@@ -240,6 +263,32 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 3.84,
     elevation: 5,
+  },
+  pickerWrapper: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    marginBottom: 0,
+    overflow: 'hidden',
+  },
+  picker: {
+    height: 50,
+    width: '100%',
+  },
+  dateButton: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    marginBottom: 0,
+  },
+  dateButtonText: {
+    color: '#1A1A1A',
+    fontSize: 16,
   },
   saveButton: {
     backgroundColor: '#00BFA5',
