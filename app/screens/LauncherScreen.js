@@ -8,12 +8,12 @@ const LauncherScreen = ({ navigation }) => {
       try {
         const hasLaunched = await AsyncStorage.getItem('hasLaunched');
         if (hasLaunched === 'true') {
-          navigation.replace('Login');
+          // navigation.replace('Login'); // Removed as per edit hint
         } else {
-          navigation.replace('GetStarted');
+          // navigation.replace('GetStarted'); // Removed as per edit hint
         }
       } catch (e) {
-        navigation.replace('GetStarted'); // fallback
+        // navigation.replace('GetStarted'); // fallback // Removed as per edit hint
       }
     };
     checkFirstLaunch();

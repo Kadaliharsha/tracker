@@ -19,7 +19,7 @@ const LoginScreen = () => {
       .then(userCredentials => {
         console.log('Logged in with:', userCredentials.user.email);
         // On success, replace the auth flow with the dashboard
-        navigation.replace('Dashboard');
+        // navigation.replace('Dashboard'); // This line is removed
       })
       .catch(error => Alert.alert('Login Error', error.message));
   };

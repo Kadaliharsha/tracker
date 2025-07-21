@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert, ScrollView, StatusBar, Keyboard, TouchableWithoutFeedback, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, FlatList, StatusBar, Keyboard, TouchableWithoutFeedback, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { useBottomTabBarHeight } from '@react-navigation/bottom-tabs';
 import { onSnapshot, collection, query, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getAuth } from 'firebase/auth';
@@ -13,17 +14,19 @@ import TransactionItem from '../components/TransactionItem';
 import BalanceCard from '../components/BalanceCard';
 import ActionButton from '../components/ActionButton';
 import { getTransactions, deleteTransaction } from '../utils/storage';
+import FilterButtons from '../components/FilterButtons';
 
 
 const DashboardScreen = () => {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
+  const tabBarHeight = useBottomTabBarHeight();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [activeFilter, setActiveFilter] = useState('This Month'); // Default filter
+  const unsubscribeRef = useRef(null); // Ref to hold the unsubscribe function
 
   useEffect(() => {
-    let unsubscribe;
-
     const setup = async () => {
       // 1. Run one-time migration (safe to call every time, only runs once)
       await migrateAsyncStorageToFirestore();
@@ -37,7 +40,8 @@ const DashboardScreen = () => {
         collection(db, 'users', user.uid, 'transactions'),
         orderBy('date', 'desc')
       );
-      unsubscribe = onSnapshot(q, (snapshot) => {
+      // Store the unsubscribe function in the ref
+      unsubscribeRef.current = onSnapshot(q, (snapshot) => {
         setTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
       }, (error) => {
         console.error('Firestore onSnapshot error:', error);
@@ -48,9 +52,26 @@ const DashboardScreen = () => {
 
     // Cleanup listener on unmount
     return () => {
-      if (unsubscribe) unsubscribe();
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+      }
     };
   }, []);
+
+  // Memoized filtering logic
+  const filteredTransactions = useMemo(() => {
+    const now = new Date();
+    return transactions.filter(txn => {
+      const txnDate = new Date(txn.date);
+      if (activeFilter === 'This Month') {
+        return txnDate.getMonth() === now.getMonth() && txnDate.getFullYear() === now.getFullYear();
+      }
+      if (activeFilter === 'This Year') {
+        return txnDate.getFullYear() === now.getFullYear();
+      }
+      return true; // 'All Time'
+    });
+  }, [transactions, activeFilter]);
 
   const handleDelete = (id) => {
     Alert.alert(
@@ -74,11 +95,11 @@ const DashboardScreen = () => {
     console.log('Delete result:', result);
   };
 
-  const totalIncome = transactions
+  const totalIncome = filteredTransactions
     .filter(txn => txn.type === 'income')
     .reduce((sum, txn) => sum + Number(txn.amount), 0);
 
-  const totalExpenses = transactions
+  const totalExpenses = filteredTransactions
   .filter(txn => txn.type === 'expense')
   .reduce((sum, txn) => sum + Number(txn.amount), 0);
 
@@ -87,87 +108,94 @@ const DashboardScreen = () => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
-        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-          {/* Header Section */}
-          <View style={styles.header}>
-            <View>
-              <Text style={styles.greeting}>Hello! 👋</Text>
-              <Text style={styles.subtitle}>Track your money smartly</Text>
-            </View>
-            <TouchableOpacity style={styles.profileButton} onPress={async () => {
-              navigation.replace('Login');
-            }}>
-              <Text style={styles.profileButtonText}>Logout</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Balance Card */}
-          <BalanceCard 
-            balance={`₹${totalBalance.toFixed(2)}`}
-            income={`₹${totalIncome.toFixed(2)}`}
-            expenses={`₹${totalExpenses.toFixed(2)}`}
-          />
-
-          {/* Quick Actions */}
-          <View style={styles.quickActions}>
-            <Text style={styles.sectionTitle}>Quick Actions</Text>
-            <View style={styles.actionButtons}>
-              <ActionButton 
-                icon="+"
-                label="Add Transaction"
-                onPress={() => navigation.navigate('AddTransaction')}
-              />
-              <ActionButton 
-                icon="📊"
-                label="Analytics"
-                onPress={() => navigation.navigate('Analytics')}
-              />
-            </View>
-          </View>
-
-          {/* Recent Transactions */}
-          <View style={styles.recentSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Transactions</Text>
-              <TouchableOpacity>
-                <Text style={styles.viewAllText}>View All</Text>
+      
+      {/* --- Static Content --- */}
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.greeting}>Hello! 👋</Text>
+          <Text style={styles.subtitle}>Track your money smartly</Text>
+        </View>
+        <TouchableOpacity style={styles.profileButton} onPress={async () => {
+          // First, unsubscribe from the listener
+          if (unsubscribeRef.current) {
+            console.log('DEBUG: Unsubscribing from Firestore listener...');
+            unsubscribeRef.current();
+          }
+          // Then, sign out
+          try {
+            console.log('DEBUG: Signing out user...');
+            await signOut(getAuth());
+          } catch (e) {
+            console.error('Logout failed:', e);
+          }
+        }}>
+          <Text style={styles.profileButtonText}>Logout</Text>
         </TouchableOpacity>
       </View>
-            
-            {loading ? (
-              <ActivityIndicator size="large" color="#00BFA5" style={{ margin: 32 }} />
-            ) : (
-              <View style={styles.transactionList}>
-                {transactions.length === 0 ? (
-                  <View style={{ alignItems: 'center', padding: 32 }}>
-                    <Text style={{ fontSize: 40, marginBottom: 8 }}>🗒️</Text>
-                    <Text style={{ textAlign: 'center', color: '#888', fontSize: 16 }}>
-                      No transactions yet. Tap “Add Transaction” to get started!
-                    </Text>
-                  </View>
-                ) : (
-                  transactions.map(txn => {
-                    console.log('Rendering txn:', txn.id, txn);
-                    return (
-                      <TransactionItem
-                        key={txn.id}
-                        icon={txn.type === 'income' ? '💰' : '💸'}
-                        title={txn.description}
-                        category={txn.category}
-                        amount={`${txn.type === 'income' ? '+' : '-'}₹${Number(txn.amount).toFixed(2)}`}
-                        type={txn.type}
-                        date={new Date(txn.date).toLocaleDateString()}
-                        onLongPress={() => handleDelete(txn.id)}
-                      />
-                    );
-                  })
-                )}
-              </View>
-            )}
-          </View>
-        </ScrollView>
-      </TouchableWithoutFeedback>
+
+      <FilterButtons activeFilter={activeFilter} onChange={setActiveFilter} />
+
+      {/* Balance Card */}
+      <BalanceCard 
+        savings={`₹${totalBalance.toFixed(2)}`}
+        income={`₹${totalIncome.toFixed(2)}`}
+        expenses={`₹${totalExpenses.toFixed(2)}`}
+      />
+
+      {/* Quick Actions */}
+      <View style={styles.quickActions}>
+        <Text style={styles.sectionTitle}>Quick Actions</Text>
+        <View style={styles.actionButtons}>
+          <ActionButton 
+            icon="+"
+            label="Add Transaction"
+            onPress={() => navigation.navigate('Add Transaction')}
+          />
+          <ActionButton 
+            icon="📊"
+            label="Analytics"
+            onPress={() => navigation.navigate('Analytics')}
+          />
+        </View>
+      </View>
+
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Recent Transactions</Text>
+        <TouchableOpacity onPress={() => navigation.navigate('AllTransactions')}>
+            <Text style={styles.viewAllText}>View All</Text>
+        </TouchableOpacity>
+      </View>
+      
+      {/* --- Scrollable List --- */}
+      {loading ? (
+        <ActivityIndicator size="large" color="#00BFA5" style={{ flex: 1 }} />
+      ) : (
+        <FlatList
+          data={filteredTransactions.slice(0, 3)} // Use filtered data
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => (
+            <TransactionItem
+              icon={item.type === 'income' ? '💰' : '💸'}
+              title={item.description}
+              category={item.category}
+              amount={`${item.type === 'income' ? '+' : '-'}₹${Number(item.amount).toFixed(2)}`}
+              type={item.type}
+              date={new Date(item.date).toLocaleDateString()}
+              onLongPress={() => handleDelete(item.id)}
+            />
+          )}
+          ListEmptyComponent={
+            <View style={{ alignItems: 'center', padding: 32 }}>
+              <Text style={{ fontSize: 40, marginBottom: 8 }}>🗒️</Text>
+              <Text style={{ textAlign: 'center', color: '#888', fontSize: 16 }}>
+                No transactions yet. Tap “Add Transaction” to get started!
+              </Text>
+            </View>
+          }
+          contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: tabBarHeight + 10 }} // Use dynamic height
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </SafeAreaView>
   );
 };
@@ -264,15 +292,15 @@ const styles = StyleSheet.create({
   },
   actionButtons: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start', // Align to the start
+    gap: 16, // Add space between buttons
   },
   actionButton: {
     backgroundColor: '#FFFFFF',
-    padding: 20,
+    padding: 12,
     borderRadius: 12,
     alignItems: 'center',
-    flex: 1,
-    marginHorizontal: 4,
+    width: 120, // Set a fixed width
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -302,12 +330,13 @@ const styles = StyleSheet.create({
   },
   recentSection: {
     paddingHorizontal: 20,
-    marginBottom: 30,
+    // marginBottom can be removed if the list handles its own padding
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20, // Add padding here since the parent container is gone
     marginBottom: 16,
   },
   viewAllText: {
@@ -316,17 +345,8 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   transactionList: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    padding: 16,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    // This container no longer needs styling, as each item will be a card.
+    // We keep the view for the empty state logic.
   },
   transactionItem: {
     flexDirection: 'row',

@@ -1,11 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-const BalanceCard = ({ balance, income, expenses }) => {
+const BalanceCard = ({ savings, income, expenses }) => {
   return (
     <View style={styles.balanceCard}>
-      <Text style={styles.balanceLabel}>Total Balance</Text>
-      <Text style={styles.balanceAmount}>{balance}</Text>
+      <Text style={styles.balanceLabel}>Total Savings</Text>
+      <Text style={styles.balanceAmount}>{savings}</Text>
       <View style={styles.balanceStats}>
         <View style={styles.statItem}>
           <Text style={styles.statLabel}>Income</Text>
@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
   },
   statAmount: {
     color: '#FFFFFF',
-    fontSize: 16,
+    fontSize: 18, // Increased font size
     fontWeight: '600',
   },
   statDivider: {
