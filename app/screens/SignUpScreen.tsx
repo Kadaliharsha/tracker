@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { auth } from '../config/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
 
 interface SignUpScreenProps {
   navigation: NativeStackNavigationProp<any>;
@@ -22,13 +22,15 @@ const SignUpScreen = ({ navigation }: SignUpScreenProps) => {
     }
     createUserWithEmailAndPassword(auth, email, password)
       .then(userCredentials => {
-        Alert.alert(
-          'Account Created', 
-          'Please proceed to login.', 
-          [
-            { text: 'OK', onPress: () => navigation.replace('Login') } 
-          ]
-        );
+        signOut(auth).then(() => {
+          Alert.alert(
+            'Success',
+            'Account created successfully!\nPlease proceed to login.',
+            [
+              { text: 'OK' }
+            ]
+          );
+        });
       })
       .catch(error => Alert.alert('Sign Up Error', error.message));
   };
