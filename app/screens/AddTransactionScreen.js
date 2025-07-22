@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import TypeSelector from '../components/TypeSelector';
-import { saveTransaction } from '../utils/storage';
+import { saveTransaction, updateTransaction } from '../utils/storage';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 
@@ -36,21 +36,26 @@ const INCOME_CATEGORIES = [
   'Other'
 ];
 
-const AddTransactionScreen = () => {
+const AddTransactionScreen = ({ route }) => {
   const navigation = useNavigation();
-  const [transactionType, setTransactionType] = useState('expense');
-  const [amount, setAmount] = useState('');
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState(EXPENSE_CATEGORIES[0]);
+  const editMode = route?.params?.editMode || false;
+  const transactionToEdit = route?.params?.transaction || null;
+
+  const [transactionType, setTransactionType] = useState(transactionToEdit ? transactionToEdit.type : 'expense');
+  const [amount, setAmount] = useState(transactionToEdit ? String(transactionToEdit.amount) : '');
+  const [description, setDescription] = useState(transactionToEdit ? transactionToEdit.description : '');
+  const [category, setCategory] = useState(transactionToEdit ? transactionToEdit.category : (transactionToEdit?.type === 'income' ? INCOME_CATEGORIES[0] : EXPENSE_CATEGORIES[0]));
   const [customCategory, setCustomCategory] = useState('');
-  const [date, setDate] = useState(new Date());
+  const [date, setDate] = useState(transactionToEdit ? new Date(transactionToEdit.date) : new Date());
   const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
 
   React.useEffect(() => {
-    setCategory(
-      transactionType === 'income' ? INCOME_CATEGORIES[0] : EXPENSE_CATEGORIES[0]
-    );
-    setCustomCategory('');
+    if (!transactionToEdit) {
+      setCategory(
+        transactionType === 'income' ? INCOME_CATEGORIES[0] : EXPENSE_CATEGORIES[0]
+      );
+      setCustomCategory('');
+    }
   }, [transactionType]);
 
   const handleSaveTransaction = async () => {
@@ -64,13 +69,18 @@ const AddTransactionScreen = () => {
       amount: parseFloat(amount),
       description: description,
       category: finalCategory,
-      date: date.toISOString(), // Use the selected date
+      date: date.toISOString(),
     };
-    const success = await saveTransaction(transaction);
+    let success = false;
+    if (editMode && transactionToEdit?.id) {
+      success = await updateTransaction(transactionToEdit.id, transaction);
+    } else {
+      success = await saveTransaction(transaction);
+    }
     if (success) {
       Alert.alert(
         'Success',
-        `Transaction saved: ${transactionType} of $${amount}`,
+        editMode ? 'Transaction updated.' : `Transaction saved: ${transactionType} of $${amount}`,
         [
           {
             text: 'OK',
@@ -86,7 +96,7 @@ const AddTransactionScreen = () => {
         ]
       );
     } else {
-      Alert.alert('Error', 'Failed to save transaction. Please try again.');
+      Alert.alert('Error', editMode ? 'Failed to update transaction. Please try again.' : 'Failed to save transaction. Please try again.');
     }
   };
 
@@ -98,7 +108,7 @@ const AddTransactionScreen = () => {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>Add Transaction</Text>
+          <Text style={styles.title}>{editMode ? 'Edit Transaction' : 'Add Transaction'}</Text>
           <Text style={styles.subtitle}>Track your money flow</Text>
         </View>
         {/* Transaction Type Selector */}
@@ -178,7 +188,7 @@ const AddTransactionScreen = () => {
         </View>
         {/* Save Button */}
         <TouchableOpacity style={styles.saveButton} onPress={handleSaveTransaction}>
-          <Text style={styles.saveButtonText}>Save Transaction</Text>
+          <Text style={styles.saveButtonText}>{editMode ? 'Update Transaction' : 'Save Transaction'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>

@@ -11,6 +11,7 @@ import { migrateAsyncStorageToFirestore } from '../utils/storage';
 import { auth } from '../config/firebase';
 import { signOut } from 'firebase/auth';
 import TransactionItem from '../components/TransactionItem';
+import { Platform, ActionSheetIOS } from 'react-native';
 import BalanceCard from '../components/BalanceCard';
 import ActionButton from '../components/ActionButton';
 import { getTransactions, deleteTransaction } from '../utils/storage';
@@ -73,26 +74,74 @@ const DashboardScreen = () => {
     });
   }, [transactions, activeFilter]);
 
-  const handleDelete = (id) => {
-    Alert.alert(
-      'Delete Transaction',
-      'Are you sure you want to delete this transaction?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => actuallyDelete(id)
-        }
-      ]
-    );
-  };
+  // Unified transaction action handler (Edit/Delete)
+  const handleTransactionAction = (item) => {
+    const showActionSheet = () => {
+      const options = ['Edit', 'Delete', 'Cancel'];
+      const destructiveButtonIndex = 1;
+      const cancelButtonIndex = 2;
+      if (Platform.OS === 'ios') {
+        ActionSheetIOS.showActionSheetWithOptions(
+          {
+            options,
+            cancelButtonIndex,
+            destructiveButtonIndex,
+            title: 'Choose an action',
+            message: 'What would you like to do with this transaction?',
+          },
+          (buttonIndex) => {
+            if (buttonIndex === 0) {
+              navigation.navigate('Main', { screen: 'Add Transaction', params: { editMode: true, transaction: item } });
+            } else if (buttonIndex === 1) {
+              confirmDelete(item.id);
+            }
+          }
+        );
+      } else {
+        // Android fallback: simple Alert
+        Alert.alert(
+          'Choose an action',
+          'What would you like to do with this transaction?',
+          [
+            {
+              text: 'Edit',
+              onPress: () => navigation.navigate('Main', { screen: 'Add Transaction', params: { editMode: true, transaction: item } }),
+            },
+            {
+              text: 'Delete',
+              style: 'destructive',
+              onPress: () => confirmDelete(item.id),
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+          ]
+        );
+      }
+    };
 
-  const actuallyDelete = async (id) => {
-    console.log('Attempting to delete Firestore doc ID:', id);
-    setTransactions(prev => prev.filter(txn => txn.id !== id));
-    const result = await deleteTransaction(id);
-    console.log('Delete result:', result);
+    const confirmDelete = (id) => {
+      Alert.alert(
+        'Delete Transaction',
+        'Are you sure you want to delete this transaction?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              console.log('Attempting to delete Firestore doc ID:', id);
+              setTransactions(prev => prev.filter(txn => txn.id !== id));
+              const result = await deleteTransaction(id);
+              console.log('Delete result:', result);
+            },
+          },
+        ]
+      );
+    };
+
+    showActionSheet();
   };
 
   const totalIncome = filteredTransactions
@@ -181,7 +230,7 @@ const DashboardScreen = () => {
               amount={`${item.type === 'income' ? '+' : '-'}₹${Number(item.amount).toFixed(2)}`}
               type={item.type}
               date={new Date(item.date).toLocaleDateString()}
-              onLongPress={() => handleDelete(item.id)}
+              onLongPress={() => handleTransactionAction(item)}
             />
           )}
           ListEmptyComponent={

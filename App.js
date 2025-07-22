@@ -23,9 +23,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <NavigationContainer>
+    <NavigationContainer>
         {user ? <AppStack /> : <AuthNavigator isFirstLaunch={false} />}
-      </NavigationContainer>
+    </NavigationContainer>
     </SafeAreaProvider>
   );
 }

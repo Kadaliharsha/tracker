@@ -69,3 +69,16 @@ export const deleteTransaction = async (id) => {
     return false;
   }
 };
+
+// Update a transaction
+export const updateTransaction = async (id, updatedData) => {
+  const userId = getUserId();
+  if (!userId) return false;
+  try {
+    await setDoc(doc(db, 'users', userId, 'transactions', id), updatedData, { merge: true });
+    return true;
+  } catch (e) {
+    console.error('Failed to update transaction:', e);
+    return false;
+  }
+};

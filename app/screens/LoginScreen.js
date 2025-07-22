@@ -29,8 +29,8 @@ const LoginScreen = () => {
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
       <View style={styles.content}>
         <View style={styles.header}>
-          <Image source={require('../assets/logo-growth.png')} style={styles.logo} />
-          <Text style={styles.title}>Welcome Back</Text>
+        <Image source={require('../assets/logo-growth.png')} style={styles.logo} />
+        <Text style={styles.title}>Welcome Back</Text>
           <Text style={styles.subtitle}>Sign in to continue tracking your finances</Text>
         </View>
         
@@ -60,15 +60,15 @@ const LoginScreen = () => {
             />
           </View>
           
-          <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin}>
+        <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin}>
             <Text style={styles.buttonTextPrimary}>Sign In</Text>
-          </TouchableOpacity>
+        </TouchableOpacity>
         </View>
         
         <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
           <Text style={styles.footerText}>Don't have an account? <Text style={styles.footerLink}>Sign Up</Text></Text>
         </TouchableOpacity>
-        </View>
+      </View>
     </SafeAreaView>
   );
 };
