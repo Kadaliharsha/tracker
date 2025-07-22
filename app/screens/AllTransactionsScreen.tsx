@@ -6,12 +6,22 @@ import { db } from '../config/firebase';
 import TransactionItem from '../components/TransactionItem';
 import { deleteTransaction } from '../utils/storage';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+interface Transaction {
+  id: string;
+  type: 'income' | 'expense';
+  amount: number;
+  description?: string;
+  category: string;
+  date: string;
+}
 
 const AllTransactionsScreen = () => {
   console.log('[DEBUG] AllTransactionsScreen mounted');
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const navigation = useNavigation();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
 
   useEffect(() => {
     console.log('[DEBUG] useEffect triggered in AllTransactionsScreen');
@@ -29,7 +39,7 @@ const AllTransactionsScreen = () => {
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const txns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const txns = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
       console.log('[DEBUG] Transactions fetched:', txns);
       setTransactions(txns);
       setLoading(false);
@@ -50,7 +60,7 @@ const AllTransactionsScreen = () => {
   }
 
   // Handler for transaction actions
-  const handleTransactionAction = (item) => {
+  const handleTransactionAction = (item: Transaction) => {
     const showActionSheet = () => {
       const options = ['Edit', 'Delete', 'Cancel'];
       const destructiveButtonIndex = 1;
@@ -96,7 +106,7 @@ const AllTransactionsScreen = () => {
       }
     };
 
-    const confirmDelete = (item) => {
+    const confirmDelete = (item: Transaction) => {
       Alert.alert(
         'Delete Transaction',
         'Are you sure you want to delete this transaction?',
@@ -121,16 +131,13 @@ const AllTransactionsScreen = () => {
     <SafeAreaView style={styles.container}>
       <FlatList
         data={transactions}
-        keyExtractor={(item) => {
-          console.log('[DEBUG] keyExtractor for transaction:', item.id);
-          return item.id;
-        }}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => {
           console.log('[DEBUG] Rendering transaction item:', item);
           return (
             <TransactionItem
               icon={item.type === 'income' ? '💰' : '💸'}
-              title={item.description}
+              title={item.description || ''}
               category={item.category}
               amount={`${item.type === 'income' ? '+' : '-'}₹${Number(item.amount).toFixed(2)}`}
               type={item.type}

@@ -16,42 +16,42 @@ import BalanceCard from '../components/BalanceCard';
 import ActionButton from '../components/ActionButton';
 import { getTransactions, deleteTransaction } from '../utils/storage';
 import FilterButtons from '../components/FilterButtons';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
+interface Transaction {
+  id: string;
+  type: 'income' | 'expense';
+  amount: number;
+  description?: string;
+  category: string;
+  date: string;
+}
 
 const DashboardScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const isFocused = useIsFocused();
   const tabBarHeight = useBottomTabBarHeight();
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [activeFilter, setActiveFilter] = useState('This Month'); // Default filter
-  const unsubscribeRef = useRef(null); // Ref to hold the unsubscribe function
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [activeFilter, setActiveFilter] = useState<string>('This Month');
+  const unsubscribeRef = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     const setup = async () => {
-      // 1. Run one-time migration (safe to call every time, only runs once)
       await migrateAsyncStorageToFirestore();
-
-      // 2. Get current user
       const user = getAuth().currentUser;
       if (!user) return;
-
-      // 3. Set up Firestore real-time listener
       const q = query(
         collection(db, 'users', user.uid, 'transactions'),
         orderBy('date', 'desc')
       );
-      // Store the unsubscribe function in the ref
       unsubscribeRef.current = onSnapshot(q, (snapshot) => {
-        setTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+        setTransactions(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction)));
       }, (error) => {
         console.error('Firestore onSnapshot error:', error);
       });
     };
-
     setup();
-
-    // Cleanup listener on unmount
     return () => {
       if (unsubscribeRef.current) {
         unsubscribeRef.current();
@@ -59,10 +59,9 @@ const DashboardScreen = () => {
     };
   }, []);
 
-  // Memoized filtering logic
   const filteredTransactions = useMemo(() => {
     const now = new Date();
-    return transactions.filter(txn => {
+    return transactions.filter((txn: Transaction) => {
       const txnDate = new Date(txn.date);
       if (activeFilter === 'This Month') {
         return txnDate.getMonth() === now.getMonth() && txnDate.getFullYear() === now.getFullYear();
@@ -70,12 +69,11 @@ const DashboardScreen = () => {
       if (activeFilter === 'This Year') {
         return txnDate.getFullYear() === now.getFullYear();
       }
-      return true; // 'All Time'
+      return true;
     });
   }, [transactions, activeFilter]);
 
-  // Unified transaction action handler (Edit/Delete)
-  const handleTransactionAction = (item) => {
+  const handleTransactionAction = (item: Transaction) => {
     const showActionSheet = () => {
       const options = ['Edit', 'Delete', 'Cancel'];
       const destructiveButtonIndex = 1;
@@ -121,7 +119,7 @@ const DashboardScreen = () => {
       }
     };
 
-    const confirmDelete = (id) => {
+    const confirmDelete = (id: string) => {
       Alert.alert(
         'Delete Transaction',
         'Are you sure you want to delete this transaction?',
@@ -225,7 +223,7 @@ const DashboardScreen = () => {
           renderItem={({ item }) => (
             <TransactionItem
               icon={item.type === 'income' ? '💰' : '💸'}
-              title={item.description}
+              title={item.description || ''}
               category={item.category}
               amount={`${item.type === 'income' ? '+' : '-'}₹${Number(item.amount).toFixed(2)}`}
               type={item.type}

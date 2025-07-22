@@ -12,8 +12,17 @@ const getUserId = () => {
 // One-time migration key
 const MIGRATION_KEY = 'transactions_migrated';
 
+interface Transaction {
+  id?: string;
+  type: 'income' | 'expense';
+  amount: number;
+  description?: string;
+  category: string;
+  date: string;
+}
+
 // One-time migration from AsyncStorage to Firestore
-export const migrateAsyncStorageToFirestore = async () => {
+export const migrateAsyncStorageToFirestore = async (): Promise<void> => {
   const migrated = await AsyncStorage.getItem(MIGRATION_KEY);
   if (migrated) return; // Already migrated
 
@@ -33,7 +42,7 @@ export const migrateAsyncStorageToFirestore = async () => {
 };
 
 // Get all transactions, newest first
-export const getTransactions = async () => {
+export const getTransactions = async (): Promise<Transaction[]> => {
   const userId = getUserId();
   if (!userId) return [];
   const q = query(
@@ -41,11 +50,11 @@ export const getTransactions = async () => {
     orderBy('date', 'desc')
   );
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Transaction));
 };
 
 // Save a new transaction
-export const saveTransaction = async (transaction) => {
+export const saveTransaction = async (transaction: Transaction): Promise<boolean> => {
   const userId = getUserId();
   if (!userId) return false;
   try {
@@ -58,7 +67,7 @@ export const saveTransaction = async (transaction) => {
 };
 
 // Delete a transaction
-export const deleteTransaction = async (id) => {
+export const deleteTransaction = async (id: string): Promise<boolean> => {
   const userId = getUserId();
   if (!userId) return false;
   try {
@@ -71,7 +80,7 @@ export const deleteTransaction = async (id) => {
 };
 
 // Update a transaction
-export const updateTransaction = async (id, updatedData) => {
+export const updateTransaction = async (id: string, updatedData: Transaction): Promise<boolean> => {
   const userId = getUserId();
   if (!userId) return false;
   try {

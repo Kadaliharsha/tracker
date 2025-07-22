@@ -1,7 +1,13 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
-const BalanceCard = ({ savings, income, expenses }) => {
+interface BalanceCardProps {
+  savings: string;
+  income: string;
+  expenses: string;
+}
+
+const BalanceCard: React.FC<BalanceCardProps> = ({ savings, income, expenses }) => {
   return (
     <View style={styles.balanceCard}>
       <Text style={styles.balanceLabel}>Total Savings</Text>

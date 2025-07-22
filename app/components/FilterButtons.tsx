@@ -3,7 +3,12 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 const FILTERS = ['This Month', 'This Year', 'All Time'];
 
-const FilterButtons = ({ activeFilter, onChange }) => {
+interface FilterButtonsProps {
+  activeFilter: string;
+  onChange: (filter: string) => void;
+}
+
+const FilterButtons: React.FC<FilterButtonsProps> = ({ activeFilter, onChange }) => {
   return (
     <View style={styles.container}>
       {FILTERS.map((filter) => (

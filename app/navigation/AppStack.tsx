@@ -2,12 +2,13 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import MainTabNavigator from './MainTabNavigator';
 import AllTransactionsScreen from '../screens/AllTransactionsScreen';
+import { StackNavigationProp } from '@react-navigation/stack';
 
 const Stack = createStackNavigator();
 
 const AppStack = () => {
   return (
-    <Stack.Navigator>
+    <Stack.Navigator id={undefined}>
       <Stack.Screen 
         name="Main" 
         component={MainTabNavigator} 
@@ -18,7 +19,6 @@ const AppStack = () => {
         component={AllTransactionsScreen}
         options={{ 
           headerTitle: 'All Transactions',
-          headerBackTitleVisible: false,
           headerStyle: {
             backgroundColor: '#F8F9FA',
           },

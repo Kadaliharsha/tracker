@@ -2,9 +2,14 @@ import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-const GetStartedScreen = ({ navigation }) => {
-  const handleProceed = async (screen) => {
+interface GetStartedScreenProps {
+  navigation: NativeStackNavigationProp<any>;
+}
+
+const GetStartedScreen = ({ navigation }: GetStartedScreenProps) => {
+  const handleProceed = async (screen: string) => {
     await AsyncStorage.setItem('hasLaunched', 'true');
     navigation.navigate(screen);
   };

@@ -1,7 +1,12 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
 
-const TypeSelector = ({ transactionType, setTransactionType }) => {
+interface TypeSelectorProps {
+  transactionType: 'income' | 'expense';
+  setTransactionType: (type: 'income' | 'expense') => void;
+}
+
+const TypeSelector: React.FC<TypeSelectorProps> = ({ transactionType, setTransactionType }) => {
   return (
     <View style={styles.typeSelector}>
       <TouchableOpacity 

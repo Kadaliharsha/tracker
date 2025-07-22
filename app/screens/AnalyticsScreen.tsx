@@ -11,15 +11,24 @@ const COLORS = [
   '#00BFA5', '#FFB74D', '#4DD0E1', '#FFD54F', '#E57373', '#BA68C8', '#90A4AE', '#AED581', '#64B5F6', '#A1887F',
 ];
 
-const CATEGORY_ICONS = {
+const CATEGORY_ICONS: { [key: string]: string } = {
   Food: '🍔', Transport: '🚌', Shopping: '🛍️', Entertainment: '🎬', Health: '💊', Rent: '🏠', Utilities: '💡', Salary: '💼', Other: '🔖',
 };
 
-function getCategoryIcon(category) {
+interface Transaction {
+  id?: string;
+  type: 'income' | 'expense';
+  amount: number;
+  description?: string;
+  category: string;
+  date: string;
+}
+
+function getCategoryIcon(category: string) {
   return CATEGORY_ICONS[category] || CATEGORY_ICONS['Other'];
 }
 
-function getFilterRange(filter, refDate = new Date()) {
+function getFilterRange(filter: string, refDate = new Date()) {
   const now = refDate;
   let start, end;
   if (filter === 'This Month') {
@@ -36,12 +45,12 @@ function getFilterRange(filter, refDate = new Date()) {
 }
 
 export default function AnalyticsScreen() {
-  const [transactions, setTransactions] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [activeFilter, setActiveFilter] = useState('This Month');
-  const [transactionType, setTransactionType] = useState('expense'); // 'expense' or 'income'
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [activeFilter, setActiveFilter] = useState<string>('This Month');
+  const [transactionType, setTransactionType] = useState<'expense' | 'income'>('expense'); // 'expense' or 'income'
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
     let mounted = true;
@@ -51,7 +60,7 @@ export default function AnalyticsScreen() {
         setError(null); // Reset error on new fetch
         const data = await getTransactions();
         if (mounted) {
-          setTransactions(data);
+          setTransactions(data as Transaction[]);
         }
       } catch (e) {
         console.error("Failed to fetch analytics data:", e);
@@ -99,7 +108,7 @@ export default function AnalyticsScreen() {
   });
   const hasLineData = monthlyIncomeTotals.some(val => val > 0) || monthlyExpenseTotals.some(val => val > 0);
 
-  function getPrevPeriodRange(filter, refDate = new Date()) {
+  function getPrevPeriodRange(filter: string, refDate = new Date()) {
     if (filter === 'This Month') {
       const p = new Date(refDate.getFullYear(), refDate.getMonth() - 1, 1);
       return { start: new Date(p.getFullYear(), p.getMonth(), 1), end: new Date(p.getFullYear(), p.getMonth() + 1, 0, 23, 59, 59, 999) };
@@ -123,30 +132,30 @@ export default function AnalyticsScreen() {
   const diff = totalCurrent - totalPrev;
   const diffColor = diff > 0 ? '#FF3B30' : '#00BFA5';
 
-  const categoryTotals = {};
+  const categoryTotals: { [key: string]: number } = {};
   filteredTransactions.forEach(txn => {
     categoryTotals[txn.category] = (categoryTotals[txn.category] || 0) + Number(txn.amount);
   });
   const sortedCategories = Object.entries(categoryTotals)
-    .map(([category, amount]) => ({ category, amount }))
-    .sort((a, b) => b.amount - a.amount);
+    .map(([category, amount]) => ({ category, amount: amount as number }))
+    .sort((a, b) => (b.amount as number) - (a.amount as number));
   const topCategories = sortedCategories.slice(0, 5);
-  const otherTotal = sortedCategories.slice(5).reduce((sum, c) => sum + c.amount, 0);
+  const otherTotal = sortedCategories.slice(5).reduce((sum, c) => sum + (c.amount as number), 0);
   const chartData = [...topCategories];
   if (otherTotal > 0) chartData.push({ category: 'Other', amount: otherTotal });
 
   const pieChartData = chartData.map((item, idx) => ({
     name: item.category,
-    amount: item.amount,
+    amount: item.amount as number,
     color: COLORS[idx % COLORS.length],
     legendFontColor: '#7F7F7F',
     legendFontSize: 14,
   }));
 
-  const totalForPercent = chartData.reduce((sum, c) => sum + c.amount, 0);
+  const totalForPercent = chartData.reduce((sum, c) => sum + (c.amount as number), 0);
   const listData = chartData.map((item, idx) => ({
     ...item,
-    percent: totalForPercent ? (item.amount / totalForPercent) * 100 : 0,
+    percent: totalForPercent ? ((item.amount as number) / totalForPercent) * 100 : 0,
     color: COLORS[idx % COLORS.length],
   }));
 
@@ -281,7 +290,7 @@ export default function AnalyticsScreen() {
     );
 }
 
-function TypeSelector({ transactionType, setTransactionType }) {
+function TypeSelector({ transactionType, setTransactionType }: { transactionType: 'expense' | 'income'; setTransactionType: (type: 'expense' | 'income') => void }) {
   const options = [{ label: 'Expenses', value: 'expense' }, { label: 'Income', value: 'income' }];
   return (
     <View style={styles.typeSelector}>
@@ -289,7 +298,7 @@ function TypeSelector({ transactionType, setTransactionType }) {
         <TouchableOpacity
           key={opt.value}
           style={[styles.typeButton, transactionType === opt.value && styles.typeButtonActive]}
-          onPress={() => setTransactionType(opt.value)}
+          onPress={() => setTransactionType(opt.value as 'expense' | 'income')}
         >
           <Text style={[styles.typeButtonText, transactionType === opt.value && styles.typeButtonTextActive]}>{opt.label}</Text>
         </TouchableOpacity>

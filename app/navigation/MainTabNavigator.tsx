@@ -6,6 +6,7 @@ import AnalyticsScreen from '../screens/AnalyticsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import { Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 
 const Tab = createBottomTabNavigator();
 
@@ -35,7 +36,7 @@ const MainTabNavigator = () => (
         } else if (route.name === 'Profile') {
           iconName = 'person-outline';
         }
-        return <Ionicons name={iconName} size={size} color={color} />;
+        return <Ionicons name={iconName as keyof typeof Ionicons.glyphMap} size={size} color={color} />;
       },
     })}
   >

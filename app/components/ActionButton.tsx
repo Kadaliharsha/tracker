@@ -1,7 +1,13 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
-const ActionButton = ({ icon, label, onPress }) => {
+interface ActionButtonProps {
+  icon: string;
+  label: string;
+  onPress: () => void;
+}
+
+const ActionButton: React.FC<ActionButtonProps> = ({ icon, label, onPress }) => {
   return (
     <TouchableOpacity style={styles.actionButton} onPress={onPress}>
       <View style={styles.actionIcon}>

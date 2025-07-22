@@ -1,8 +1,13 @@
 import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
-const LauncherScreen = ({ navigation }) => {
+interface LauncherScreenProps {
+  navigation: NativeStackNavigationProp<any>;
+}
+
+const LauncherScreen = ({ navigation }: LauncherScreenProps) => {
   useEffect(() => {
     const checkFirstLaunch = async () => {
       try {

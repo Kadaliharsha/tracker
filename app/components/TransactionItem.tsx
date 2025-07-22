@@ -1,7 +1,17 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 
-const TransactionItem = ({ icon, title, category, amount, date, type, onLongPress }) => (
+interface TransactionItemProps {
+  icon: string;
+  title: string;
+  category: string;
+  amount: string;
+  date: string;
+  type: string;
+  onLongPress?: () => void;
+}
+
+const TransactionItem: React.FC<TransactionItemProps> = ({ icon, title, category, amount, date, type, onLongPress }) => (
   <TouchableOpacity onLongPress={onLongPress} activeOpacity={0.8} style={styles.card}>
     <View style={styles.transactionItem}>
       <View style={styles.transactionIcon}>

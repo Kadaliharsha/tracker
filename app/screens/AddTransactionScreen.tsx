@@ -15,6 +15,20 @@ import TypeSelector from '../components/TypeSelector';
 import { saveTransaction, updateTransaction } from '../utils/storage';
 import { Picker } from '@react-native-picker/picker';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+
+interface Transaction {
+  id?: string;
+  type: 'income' | 'expense';
+  amount: number;
+  description?: string;
+  category: string;
+  date: string;
+}
+
+interface AddTransactionScreenProps {
+  route: { params?: { editMode?: boolean; transaction?: Transaction } };
+}
 
 const EXPENSE_CATEGORIES = [
   'Food',
@@ -36,18 +50,20 @@ const INCOME_CATEGORIES = [
   'Other'
 ];
 
-const AddTransactionScreen = ({ route }) => {
-  const navigation = useNavigation();
+const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
+  const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const editMode = route?.params?.editMode || false;
-  const transactionToEdit = route?.params?.transaction || null;
+  const transactionToEdit: Transaction | null = (route?.params?.transaction as Transaction) || null;
 
-  const [transactionType, setTransactionType] = useState(transactionToEdit ? transactionToEdit.type : 'expense');
-  const [amount, setAmount] = useState(transactionToEdit ? String(transactionToEdit.amount) : '');
-  const [description, setDescription] = useState(transactionToEdit ? transactionToEdit.description : '');
-  const [category, setCategory] = useState(transactionToEdit ? transactionToEdit.category : (transactionToEdit?.type === 'income' ? INCOME_CATEGORIES[0] : EXPENSE_CATEGORIES[0]));
-  const [customCategory, setCustomCategory] = useState('');
-  const [date, setDate] = useState(transactionToEdit ? new Date(transactionToEdit.date) : new Date());
-  const [isDatePickerVisible, setDatePickerVisibility] = useState(false);
+  const [transactionType, setTransactionType] = useState<'income' | 'expense'>(transactionToEdit ? transactionToEdit.type : 'expense');
+  const [amount, setAmount] = useState<string>(transactionToEdit ? String(transactionToEdit.amount) : '');
+  const [description, setDescription] = useState<string>(transactionToEdit ? transactionToEdit.description || '' : '');
+  const [category, setCategory] = useState<string>(
+    transactionToEdit ? transactionToEdit.category : EXPENSE_CATEGORIES[0]
+  );
+  const [customCategory, setCustomCategory] = useState<string>('');
+  const [date, setDate] = useState<Date>(transactionToEdit ? new Date(transactionToEdit.date) : new Date());
+  const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);
 
   React.useEffect(() => {
     if (!transactionToEdit) {
@@ -64,7 +80,7 @@ const AddTransactionScreen = ({ route }) => {
       return;
     }
     const finalCategory = category === 'Other' ? (customCategory || 'Other') : category;
-    const transaction = {
+    const transaction: Transaction = {
       type: transactionType,
       amount: parseFloat(amount),
       description: description,
@@ -112,7 +128,7 @@ const AddTransactionScreen = ({ route }) => {
           <Text style={styles.subtitle}>Track your money flow</Text>
         </View>
         {/* Transaction Type Selector */}
-        <TypeSelector transactionType={transactionType} setTransactionType={setTransactionType} />
+        <TypeSelector transactionType={transactionType} setTransactionType={setTransactionType as (type: 'income' | 'expense') => void} />
         {/* Amount Input */}
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Amount</Text>

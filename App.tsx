@@ -5,10 +5,10 @@ import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import AppStack from './app/navigation/AppStack';
 import AuthNavigator from './app/navigation/AuthNavigator';
-import { onAuthStateChanged, getAuth } from 'firebase/auth';
+import { onAuthStateChanged, getAuth, User } from 'firebase/auth';
 
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,9 +23,9 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-    <NavigationContainer>
+      <NavigationContainer>
         {user ? <AppStack /> : <AuthNavigator isFirstLaunch={false} />}
-    </NavigationContainer>
+      </NavigationContainer>
     </SafeAreaProvider>
   );
 }
