@@ -1,0 +1,19 @@
+# This file is for documentation/reference only.
+# Use package.json for actual dependency management in JS/React Native projects.
+
+expo
+react
+react-native
+firebase
+@react-navigation/native
+@react-navigation/stack
+@react-navigation/native-stack
+react-native-chart-kit
+react-native-svg
+@react-native-async-storage/async-storage
+@react-native-picker/picker
+@react-native-community/datetimepicker
+react-native-modal-datetime-picker
+expo-linear-gradient
+expo-status-bar
+expo-blur 
