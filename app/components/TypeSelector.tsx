@@ -12,36 +12,30 @@ const TypeSelector: React.FC<TypeSelectorProps> = ({ transactionType, setTransac
       <TouchableOpacity 
         style={[
           styles.typeButton, 
-          transactionType === 'expense' && styles.activeTypeButton
+          transactionType === 'expense' ? styles.activeTypeButton : styles.inactiveTypeButton
         ]}
         onPress={() => setTransactionType('expense')}
       >
-        <View style={styles.typeButtonContent}>
-          <Text style={styles.typeButtonIcon}>💸</Text>
-          <Text style={[
-            styles.typeButtonText,
-            transactionType === 'expense' && styles.activeTypeButtonText
-          ]}>
-            Expense
-          </Text>
-        </View>
+        <Text style={[
+          styles.typeButtonText,
+          transactionType === 'expense' ? styles.activeTypeButtonText : styles.inactiveTypeButtonText
+        ]}>
+          Expense
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity 
         style={[
           styles.typeButton, 
-          transactionType === 'income' && styles.activeTypeButton
+          transactionType === 'income' ? styles.activeTypeButton : styles.inactiveTypeButton
         ]}
         onPress={() => setTransactionType('income')}
       >
-        <View style={styles.typeButtonContent}>
-          <Text style={styles.typeButtonIcon}>💰</Text>
-          <Text style={[
-            styles.typeButtonText,
-            transactionType === 'income' && styles.activeTypeButtonText
-          ]}>
-            Income
-          </Text>
-        </View>
+        <Text style={[
+          styles.typeButtonText,
+          transactionType === 'income' ? styles.activeTypeButtonText : styles.inactiveTypeButtonText
+        ]}>
+          Income
+        </Text>
       </TouchableOpacity>
     </View>
   );
@@ -50,42 +44,34 @@ const TypeSelector: React.FC<TypeSelectorProps> = ({ transactionType, setTransac
 const styles = StyleSheet.create({
   typeSelector: {
     flexDirection: 'row',
-    marginBottom: 30,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    padding: 6,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    justifyContent: 'space-evenly',
+    backgroundColor: '#E8E8E8',
+    borderRadius: 20,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    padding: 4,
   },
   typeButton: {
     flex: 1,
-    paddingVertical: 16,
+    paddingVertical: 8,
+    borderRadius: 16,
     alignItems: 'center',
-    borderRadius: 8,
-  },
-  typeButtonContent: {
-    alignItems: 'center',
-  },
-  typeButtonIcon: {
-    fontSize: 20,
-    marginBottom: 4,
   },
   activeTypeButton: {
-    backgroundColor: '#00BFA5',
+    backgroundColor: '#FFFFFF',
+  },
+  inactiveTypeButton: {
+    backgroundColor: 'transparent',
   },
   typeButtonText: {
     fontSize: 14,
     fontWeight: '600',
-    color: '#666',
   },
   activeTypeButtonText: {
-    color: '#fff',
+    color: '#00BFA5',
+  },
+  inactiveTypeButtonText: {
+    color: '#666',
   },
 });
 

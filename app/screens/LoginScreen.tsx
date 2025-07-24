@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, StatusBar, Alert, Image } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, StatusBar, Alert, Image, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { auth } from '../config/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
+import Toast from 'react-native-toast-message';
+import SuccessModal from '../components/SuccessModal';
 
 interface LoginScreenProps {
   navigation: NativeStackNavigationProp<any>;
@@ -13,6 +15,7 @@ interface LoginScreenProps {
 const LoginScreen = ({ navigation }: LoginScreenProps) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleLogin = () => {
     if (!email || !password) {
@@ -22,8 +25,11 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
     signInWithEmailAndPassword(auth, email, password)
       .then(userCredentials => {
         console.log('Logged in with:', userCredentials.user.email);
-        // On success, replace the auth flow with the dashboard
-        // navigation.replace('Dashboard'); // This line is removed
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          // navigation.replace('Dashboard'); // Uncomment if you want to navigate
+        }, 1200);
       })
       .catch(error => Alert.alert('Login Error', error.message));
   };
@@ -31,48 +37,55 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
-      <View style={styles.content}>
-        <View style={styles.header}>
-        <Image source={require('../assets/logo-growth.png')} style={styles.logo} />
-        <Text style={styles.title}>Welcome Back</Text>
-          <Text style={styles.subtitle}>Sign in to continue tracking your finances</Text>
-        </View>
-        
-        <View style={styles.formContainer}>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Email Address</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="Enter your email" 
-              placeholderTextColor="#90A4AE" 
-              value={email} 
-              onChangeText={setEmail} 
-              keyboardType="email-address" 
-              autoCapitalize="none" 
-            />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.content}>
+          <View style={styles.header}>
+          <Image source={require('../assets/logo-growth.png')} style={styles.logo} />
+          <Text style={styles.title}>Welcome Back</Text>
+            <Text style={styles.subtitle}>Sign in to continue tracking your finances</Text>
           </View>
           
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput 
-              style={styles.input} 
-              placeholder="Enter your password" 
-              placeholderTextColor="#90A4AE" 
-              value={password} 
-              onChangeText={setPassword} 
-              secureTextEntry 
-            />
+          <View style={styles.formContainer}>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Email Address</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Enter your email" 
+                placeholderTextColor="#90A4AE" 
+                value={email} 
+                onChangeText={setEmail} 
+                keyboardType="email-address" 
+                autoCapitalize="none" 
+              />
+            </View>
+            
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>Password</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Enter your password" 
+                placeholderTextColor="#90A4AE" 
+                value={password} 
+                onChangeText={setPassword} 
+                secureTextEntry 
+              />
+            </View>
+            
+          <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin}>
+              <Text style={styles.buttonTextPrimary}>Sign In</Text>
+          </TouchableOpacity>
           </View>
           
-        <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin}>
-            <Text style={styles.buttonTextPrimary}>Sign In</Text>
-        </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+            <Text style={styles.footerText}>Don't have an account? <Text style={styles.footerLink}>Sign Up</Text></Text>
+          </TouchableOpacity>
         </View>
-        
-        <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-          <Text style={styles.footerText}>Don't have an account? <Text style={styles.footerLink}>Sign Up</Text></Text>
-        </TouchableOpacity>
-      </View>
+      </KeyboardAvoidingView>
+      <SuccessModal visible={showSuccess} message="Signed in!" />
+      <Toast />
     </SafeAreaView>
   );
 };

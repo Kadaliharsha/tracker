@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Calendar } from 'react-native-calendars';
 import { 
   View, 
   Text, 
@@ -7,15 +8,19 @@ import {
   TouchableOpacity, 
   Alert,
   ScrollView,
-  StatusBar 
+  StatusBar,
+  KeyboardAvoidingView,
+  Platform
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import TypeSelector from '../components/TypeSelector';
 import { saveTransaction, updateTransaction } from '../utils/storage';
 import { Picker } from '@react-native-picker/picker';
-import DateTimePickerModal from 'react-native-modal-datetime-picker';
+// import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import Toast from 'react-native-toast-message';
+import SuccessModal from '../components/SuccessModal';
 
 interface Transaction {
   id?: string;
@@ -50,6 +55,24 @@ const INCOME_CATEGORIES = [
   'Other'
 ];
 
+// Utility to format numbers with commas (Indian style: 1,00,000)
+function formatAmountWithCommas(value: string): string {
+  // Remove all non-digit and non-decimal characters
+  let [intPart, decPart] = value.replace(/[^\d.]/g, '').split('.');
+  if (!intPart) return '';
+  // Indian number system formatting
+  let lastThree = intPart.slice(-3);
+  let otherNumbers = intPart.slice(0, -3);
+  if (otherNumbers !== '') {
+    lastThree = ',' + lastThree;
+  }
+  let formatted = otherNumbers.replace(/\B(?=(\d{2})+(?!\d))/g, ",") + lastThree;
+  if (decPart !== undefined) {
+    formatted += '.' + decPart;
+  }
+  return formatted;
+}
+
 const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
   const editMode = route?.params?.editMode || false;
@@ -57,13 +80,15 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
 
   const [transactionType, setTransactionType] = useState<'income' | 'expense'>(transactionToEdit ? transactionToEdit.type : 'expense');
   const [amount, setAmount] = useState<string>(transactionToEdit ? String(transactionToEdit.amount) : '');
+  const [rawAmount, setRawAmount] = useState<string>(transactionToEdit ? String(transactionToEdit.amount) : '');
   const [description, setDescription] = useState<string>(transactionToEdit ? transactionToEdit.description || '' : '');
   const [category, setCategory] = useState<string>(
     transactionToEdit ? transactionToEdit.category : EXPENSE_CATEGORIES[0]
   );
   const [customCategory, setCustomCategory] = useState<string>('');
   const [date, setDate] = useState<Date>(transactionToEdit ? new Date(transactionToEdit.date) : new Date());
-  const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);
+  // const [isDatePickerVisible, setDatePickerVisibility] = useState<boolean>(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   React.useEffect(() => {
     if (!transactionToEdit) {
@@ -75,14 +100,29 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
   }, [transactionType]);
 
   const handleSaveTransaction = async () => {
-    if (!amount) {
-      Alert.alert('Error', 'Please enter an amount.');
+    // --- Enhanced validation ---
+    // 1. Amount : not empty, valid number, not negative
+    if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) {
+      Alert.alert('Error', 'Please enter a valid, positive amount.');
       return;
     }
+
+    // 2. Category: must be selected
+    if (!category) {
+      Alert.alert('Error', 'Please select a category.');
+      return;
+    }
+
+    // 3. If category is 'Other', custom category must be provided
+    if (category === 'Other' && !customCategory.trim()) {
+      Alert.alert('Error', 'Please enter a custom category.');
+      return;
+    }
+
     const finalCategory = category === 'Other' ? (customCategory || 'Other') : category;
     const transaction: Transaction = {
       type: transactionType,
-      amount: parseFloat(amount),
+      amount: parseFloat(rawAmount),
       description: description,
       category: finalCategory,
       date: date.toISOString(),
@@ -94,23 +134,16 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
       success = await saveTransaction(transaction);
     }
     if (success) {
-      Alert.alert(
-        'Success',
-        editMode ? 'Transaction updated.' : `Transaction saved: ${transactionType} of $${amount}`,
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              setAmount('');
-              setDescription('');
-              setCategory(transactionType === 'income' ? INCOME_CATEGORIES[0] : EXPENSE_CATEGORIES[0]);
-              setCustomCategory('');
-              setDate(new Date());
-              navigation.goBack();
-            }
-          }
-        ]
-      );
+      setShowSuccess(true);
+      setAmount('');
+      setDescription('');
+      setCategory(transactionType === 'income' ? INCOME_CATEGORIES[0] : EXPENSE_CATEGORIES[0]);
+      setCustomCategory('');
+      setDate(new Date());
+      setTimeout(() => {
+        setShowSuccess(false);
+        navigation.goBack();
+      }, 1200);
     } else {
       Alert.alert('Error', editMode ? 'Failed to update transaction. Please try again.' : 'Failed to save transaction. Please try again.');
     }
@@ -121,65 +154,75 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.title}>{editMode ? 'Edit Transaction' : 'Add Transaction'}</Text>
-          <Text style={styles.subtitle}>Track your money flow</Text>
-        </View>
-        {/* Transaction Type Selector */}
-        <TypeSelector transactionType={transactionType} setTransactionType={setTransactionType as (type: 'income' | 'expense') => void} />
-        {/* Amount Input */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Amount</Text>
-          <View style={styles.amountContainer}>
-            <Text style={styles.currencySymbol}>₹</Text>
-            <TextInput
-              style={styles.amountInput}
-              placeholder="0.00"
-              value={amount}
-              onChangeText={setAmount}
-              keyboardType="numeric"
-              placeholderTextColor="#90A4AE"
-            />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <ScrollView contentContainerStyle={styles.scrollContent}>
+          {/* Header */}
+          <View style={styles.header}>
+            <Text style={styles.title}>{editMode ? 'Edit Transaction' : 'Add Transaction'}</Text>
+            <Text style={styles.subtitle}>Track your money flow</Text>
           </View>
-        </View>
-        {/* Description Input (optional) */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Description (optional)</Text>
-          <TextInput
-            style={styles.input}
-            placeholder={transactionType === 'income' ? "e.g., July Salary, Upwork payment" : "e.g., Lunch at Subway, Uber ride"}
-            value={description}
-            onChangeText={setDescription}
-            placeholderTextColor="#90A4AE"
-          />
-        </View>
-        {/* Category Picker */}
-        <View style={styles.inputContainer}>
-          <Text style={styles.label}>Category</Text>
-          <View style={styles.pickerWrapper}>
-            <Picker
-              selectedValue={category}
-              onValueChange={setCategory}
-              style={styles.picker}
-            >
-              {categoryList.map(cat => (
-                <Picker.Item label={cat} value={cat} key={cat} />
-              ))}
-            </Picker>
-          </View>
-          {category === 'Other' && (
+          {/* Transaction Type Selector */}
+          <TypeSelector transactionType={transactionType} setTransactionType={setTransactionType as (type: 'income' | 'expense') => void} />
+          {/* Amount Input */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Amount</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter custom category"
-              value={customCategory}
-              onChangeText={setCustomCategory}
+              placeholder="0.00"
+              value={amount}
+              onChangeText={text => {
+                // Remove commas and format
+                const raw = text.replace(/,/g, '');
+                // Only allow valid number input (digits and at most one decimal point)
+                if (/^\d*\.?\d*$/.test(raw)) {
+                  setRawAmount(raw);
+                  setAmount(formatAmountWithCommas(raw));
+                }
+              }}
+              keyboardType="numeric"
+              placeholderTextColor="#90A4AE"
+              maxLength={15}
+            />
+          </View>
+          {/* Description Input (optional) */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Description (optional)</Text>
+            <TextInput
+              style={styles.input}
+              placeholder={transactionType === 'income' ? "e.g., July Salary, Upwork payment" : "e.g., Lunch at Subway, Uber ride"}
+              value={description}
+              onChangeText={setDescription}
               placeholderTextColor="#90A4AE"
             />
-          )}
-        </View>
-        {/* Date Picker */}
+          </View>
+          {/* Category Picker */}
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>Category</Text>
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={category}
+                onValueChange={setCategory}
+                style={styles.picker}
+              >
+                {categoryList.map(cat => (
+                  <Picker.Item label={cat} value={cat} key={cat} />
+                ))}
+              </Picker>
+            </View>
+            {category === 'Other' && (
+              <TextInput
+                style={styles.input}
+                placeholder="Enter custom category"
+                value={customCategory}
+                onChangeText={setCustomCategory}
+                placeholderTextColor="#90A4AE"
+              />
+            )}
+          </View>
+          {/* Date Picker
         <View style={styles.inputContainer}>
           <Text style={styles.label}>Date</Text>
           <TouchableOpacity
@@ -201,12 +244,29 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
             onCancel={() => setDatePickerVisibility(false)}
             maximumDate={new Date()} // Prevent future dates if you want
           />
-        </View>
-        {/* Save Button */}
-        <TouchableOpacity style={styles.saveButton} onPress={handleSaveTransaction}>
-          <Text style={styles.saveButtonText}>{editMode ? 'Update Transaction' : 'Save Transaction'}</Text>
-        </TouchableOpacity>
-      </ScrollView>
+        </View> */}
+          <Text style={styles.label}>Date</Text>
+          <Calendar
+            current={date.toISOString().split('T')[0]}
+            onDayPress={day => setDate(new Date(day.dateString))}
+            markedDates={{
+              [date.toISOString().split('T')[0]]: { selected: true, selectedColor: '#00BFA5' }
+            }}
+            maxDate={new Date().toISOString().split('T')[0]}
+            theme={{
+              selectedDayBackgroundColor: '#00BFA5',
+              todayTextColor: '#00BFA5',
+              arrowColor: '#00BFA5',
+            }}
+            style={styles.compactCalendar}
+          />
+          {/* Save Button */}
+          <TouchableOpacity style={styles.saveButton} onPress={handleSaveTransaction}>
+            <Text style={styles.saveButtonText}>{editMode ? 'Update Transaction' : 'Save Transaction'}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </KeyboardAvoidingView>
+      <SuccessModal visible={showSuccess} message="Transaction saved!" />
     </SafeAreaView>
   );
 };
@@ -217,7 +277,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F8F9FA',
   },
   scrollContent: {
-    padding: 20,
+    padding: 12,
   },
   header: {
     alignItems: 'center',
@@ -236,7 +296,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   inputContainer: {
-    marginBottom: 24,
+    marginBottom: 14,
   },
   label: {
     fontSize: 16,
@@ -245,32 +305,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   amountContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3.84,
-    elevation: 5,
+    // removed for uniform input styling
   },
   currencySymbol: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
-    marginRight: 8,
+    // removed for uniform input styling
   },
   amountInput: {
-    flex: 1,
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#1A1A1A',
+    // removed for uniform input styling
   },
   input: {
     backgroundColor: '#FFFFFF',
@@ -321,7 +362,7 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     borderRadius: 12,
     alignItems: 'center',
-    marginTop: 20,
+    marginTop: 0,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -335,6 +376,9 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 18,
     fontWeight: '600',
+  },
+  compactCalendar: {
+    marginBottom: 24,
   },
 });
 

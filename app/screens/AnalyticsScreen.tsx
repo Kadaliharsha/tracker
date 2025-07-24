@@ -1,4 +1,5 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, Text, StyleSheet, ActivityIndicator, FlatList, Dimensions, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { PieChart, BarChart, LineChart } from 'react-native-chart-kit';
@@ -52,29 +53,31 @@ export default function AnalyticsScreen() {
   const [transactionType, setTransactionType] = useState<'expense' | 'income'>('expense'); // 'expense' or 'income'
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        setLoading(true);
-        setError(null); // Reset error on new fetch
-        const data = await getTransactions();
-        if (mounted) {
-          setTransactions(data as Transaction[]);
+  useFocusEffect(
+    React.useCallback(() => {
+      let mounted = true;
+      (async () => {
+        try {
+          setLoading(true);
+          setError(null); // Reset error on new fetch
+          const data = await getTransactions();
+          if (mounted) {
+            setTransactions(data as Transaction[]);
+          }
+        } catch (e) {
+          console.error("Failed to fetch analytics data:", e);
+          if (mounted) {
+            setError("Could not load analytics. Please check your internet connection.");
+          }
+        } finally {
+          if (mounted) {
+            setLoading(false);
+          }
         }
-      } catch (e) {
-        console.error("Failed to fetch analytics data:", e);
-        if (mounted) {
-          setError("Could not load analytics. Please check your internet connection.");
-        }
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    })();
-    return () => { mounted = false; };
-  }, []);
+      })();
+      return () => { mounted = false; };
+    }, [])
+  );
 
   // --- Data Processing ---
   const yearsWithData = useMemo(() => {

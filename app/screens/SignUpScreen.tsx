@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, StatusBar, Alert } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, StatusBar, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { auth } from '../config/firebase';
 import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import Toast from 'react-native-toast-message';
+import SuccessModal from '../components/SuccessModal';
 
 interface SignUpScreenProps {
   navigation: NativeStackNavigationProp<any>;
@@ -14,6 +16,7 @@ const SignUpScreen = ({ navigation }: SignUpScreenProps) => {
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleSignUp = () => {
     if (!fullName || !email || !password) {
@@ -23,13 +26,11 @@ const SignUpScreen = ({ navigation }: SignUpScreenProps) => {
     createUserWithEmailAndPassword(auth, email, password)
       .then(userCredentials => {
         signOut(auth).then(() => {
-          Alert.alert(
-            'Success',
-            'Account created successfully!\nPlease proceed to login.',
-            [
-              { text: 'OK' }
-            ]
-          );
+          setShowSuccess(true);
+          setTimeout(() => {
+            setShowSuccess(false);
+            // navigation.navigate('Login'); // Uncomment if you want to navigate
+          }, 1200);
         });
       })
       .catch(error => Alert.alert('Sign Up Error', error.message));
@@ -38,18 +39,25 @@ const SignUpScreen = ({ navigation }: SignUpScreenProps) => {
   return (
     <SafeAreaView style={styles.container} edges={['top', 'left', 'right']}>
       <StatusBar barStyle="dark-content" backgroundColor="#F8F9FA" />
-      <View style={styles.content}>
-        <Text style={styles.title}>Create an Account</Text>
-        <TextInput style={styles.input} placeholder="Full Name" placeholderTextColor="#90A4AE" value={fullName} onChangeText={setFullName} />
-        <TextInput style={styles.input} placeholder="Email Address" placeholderTextColor="#90A4AE" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-        <TextInput style={styles.input} placeholder="Password (min. 6 characters)" placeholderTextColor="#90A4AE" value={password} onChangeText={setPassword} secureTextEntry />
-        <TouchableOpacity style={styles.buttonPrimary} onPress={handleSignUp}>
-          <Text style={styles.buttonTextPrimary}>Sign Up</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={styles.footerText}>Already have an account? <Text style={styles.footerLink}>Log In</Text></Text>
-        </TouchableOpacity>
-      </View>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={{ flex: 1 }}
+      >
+        <View style={styles.content}>
+          <Text style={styles.title}>Create an Account</Text>
+          <TextInput style={styles.input} placeholder="Full Name" placeholderTextColor="#90A4AE" value={fullName} onChangeText={setFullName} />
+          <TextInput style={styles.input} placeholder="Email Address" placeholderTextColor="#90A4AE" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+          <TextInput style={styles.input} placeholder="Password (min. 6 characters)" placeholderTextColor="#90A4AE" value={password} onChangeText={setPassword} secureTextEntry />
+          <TouchableOpacity style={styles.buttonPrimary} onPress={handleSignUp}>
+            <Text style={styles.buttonTextPrimary}>Sign Up</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={styles.footerText}>Already have an account? <Text style={styles.footerLink}>Log In</Text></Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+      <Toast />
+      <SuccessModal visible={showSuccess} message="Account created!" />
     </SafeAreaView>
   );
 };
