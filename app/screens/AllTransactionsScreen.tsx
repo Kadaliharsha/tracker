@@ -1,4 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import { transactionsToCSV } from '../utils/export';
+import React, { useEffect, useState, useRef, useLayoutEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, SafeAreaView, TouchableOpacity, ActionSheetIOS, Alert, Platform } from 'react-native';
 import { getAuth } from 'firebase/auth';
 import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
@@ -7,6 +10,8 @@ import TransactionItem from '../components/TransactionItem';
 import { deleteTransaction } from '../utils/storage';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import UndoSnackbar from '../components/UndoSnackbar';
+import { Feather } from '@expo/vector-icons';
 
 interface Transaction {
   id: string;
@@ -22,6 +27,9 @@ const AllTransactionsScreen = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const navigation = useNavigation<NativeStackNavigationProp<any>>();
+  const [showUndo, setShowUndo] = useState(false);
+  const [deletedTxn, setDeletedTxn] = useState<Transaction | null>(null);
+  const undoTimer = useRef<any>(null);
 
   useEffect(() => {
     console.log('[DEBUG] useEffect triggered in AllTransactionsScreen');
@@ -53,6 +61,27 @@ const AllTransactionsScreen = () => {
       unsubscribe();
     };
   }, []);
+
+  const exportCSV = async () => {
+    if (!transactions.length) {
+      Alert.alert('No data', 'There are no transactions to export.');
+      return;
+    }
+    const csv = transactionsToCSV(transactions);
+    const path = FileSystem.documentDirectory + 'transactions.csv';
+    await FileSystem.writeAsStringAsync(path, csv, { encoding: FileSystem.EncodingType.UTF8 });
+    await Sharing.shareAsync(path, { mimeType: 'text/csv' });
+  };
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <TouchableOpacity onPress={exportCSV} style={{ marginRight: 16 }}>
+          <Feather name="download" size={24} color="#00BFA5" />
+        </TouchableOpacity>
+      ),
+    });
+  }, [navigation, exportCSV]);
 
   if (loading) {
     console.log('[DEBUG] Loading transactions...');
@@ -115,9 +144,18 @@ const AllTransactionsScreen = () => {
           {
             text: 'Delete',
             style: 'destructive',
-            onPress: async () => {
-              console.log('[DEBUG] Deleting transaction:', item.id);
-              await deleteTransaction(item.id);
+            onPress: () => {
+              // Optimistic UI: remove from UI immediately
+              setTransactions(prev => prev.filter(txn => txn.id !== item.id));
+              setDeletedTxn(item);
+              setShowUndo(true);
+              // Start timer to delete from Firestore after 3s
+              if (undoTimer.current) clearTimeout(undoTimer.current);
+              undoTimer.current = setTimeout(async () => {
+                await deleteTransaction(item.id);
+                setShowUndo(false);
+                setDeletedTxn(null);
+              }, 3000);
             },
           },
         ]
@@ -125,6 +163,21 @@ const AllTransactionsScreen = () => {
     };
 
     showActionSheet();
+  };
+
+  // Undo handler
+  const handleUndo = () => {
+    if (undoTimer.current) clearTimeout(undoTimer.current);
+    if (deletedTxn) {
+      setTransactions(prev => [deletedTxn, ...prev]);
+    }
+    setShowUndo(false);
+    setDeletedTxn(null);
+  };
+  // Hide snackbar handler
+  const handleHideSnackbar = () => {
+    setShowUndo(false);
+    setDeletedTxn(null);
   };
 
   return (
@@ -148,10 +201,19 @@ const AllTransactionsScreen = () => {
         }}
         ListEmptyComponent={
           <View style={{ alignItems: 'center', padding: 32 }}>
-            <Text style={{ fontSize: 16, color: '#666' }}>No transactions found.</Text>
+            <Text style={{ fontSize: 40, marginBottom: 8 }}>🗂️</Text>
+            <Text style={{ fontSize: 16, color: '#666', textAlign: 'center' }}>
+              No transactions found.
+            </Text>
           </View>
         }
         contentContainerStyle={styles.listContent}
+      />
+      <UndoSnackbar
+        visible={showUndo}
+        message="Transaction deleted"
+        onUndo={handleUndo}
+        onHide={handleHideSnackbar}
       />
     </SafeAreaView>
   );

@@ -21,6 +21,7 @@ import { Picker } from '@react-native-picker/picker';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Toast from 'react-native-toast-message';
 import SuccessModal from '../components/SuccessModal';
+import { getAuth } from 'firebase/auth';
 
 interface Transaction {
   id?: string;
@@ -29,6 +30,7 @@ interface Transaction {
   description?: string;
   category: string;
   date: string;
+  uid?: string; // Added uid to the interface
 }
 
 interface AddTransactionScreenProps {
@@ -99,7 +101,12 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
     }
   }, [transactionType]);
 
-  const handleSaveTransaction = async () => {
+  const handleSaveTransaction = async (addAnother = false) => {
+    const user = getAuth().currentUser;
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to add a transaction.');
+      return;
+    }
     // --- Enhanced validation ---
     // 1. Amount : not empty, valid number, not negative
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) {
@@ -126,6 +133,7 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
       description: description,
       category: finalCategory,
       date: date.toISOString(),
+      uid: user.uid,
     };
     let success = false;
     if (editMode && transactionToEdit?.id) {
@@ -142,7 +150,9 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
       setDate(new Date());
       setTimeout(() => {
         setShowSuccess(false);
-        navigation.goBack();
+        if (!addAnother) {
+          navigation.goBack();
+        }
       }, 1200);
     } else {
       Alert.alert('Error', editMode ? 'Failed to update transaction. Please try again.' : 'Failed to save transaction. Please try again.');
@@ -261,9 +271,20 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
             style={styles.compactCalendar}
           />
           {/* Save Button */}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSaveTransaction}>
-            <Text style={styles.saveButtonText}>{editMode ? 'Update Transaction' : 'Save Transaction'}</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 1 }}>
+            <TouchableOpacity
+              style={[styles.saveButton, { flex: 1, marginRight: 8 }]}
+              onPress={() => handleSaveTransaction(false)}
+            >
+              <Text style={styles.saveButtonText}>{editMode ? 'Update Transaction' : 'Save & Exit'}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.saveButton, { flex: 1, marginLeft: 8, backgroundColor: '#007E5A' }]}
+              onPress={() => handleSaveTransaction(true)}
+            >
+              <Text style={styles.saveButtonText}>Save & Add Another</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
       <SuccessModal visible={showSuccess} message="Transaction saved!" />

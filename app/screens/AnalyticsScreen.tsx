@@ -207,7 +207,10 @@ export default function AnalyticsScreen() {
             </View>
             
             {filteredTransactions.length === 0 ? (
-              <Text style={styles.emptyState}>No {transactionType}s found for this period.</Text>
+              <View style={{ alignItems: 'center', marginTop: 40 }}>
+                <Text style={{ fontSize: 40, marginBottom: 8 }}>📊</Text>
+                <Text style={styles.emptyState}>No {transactionType}s found for this period.</Text>
+              </View>
             ) : (
               <>
                 <View style={styles.insightCard}>
