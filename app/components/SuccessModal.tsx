@@ -1,6 +1,5 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal } from 'react-native';
-import { FontAwesome } from '@react-native-vector-icons/fontawesome';
 
 export default function SuccessModal({ visible, message = "Transaction saved!" }) {
   return (
@@ -12,7 +11,7 @@ export default function SuccessModal({ visible, message = "Transaction saved!" }
       <View style={styles.overlay}>
         <View style={styles.modal}>
           <View style={styles.iconCircle}>
-            <FontAwesome name="check" size={48} color="#00BFA5" />
+            <Text style={styles.iconText}>✓</Text>
           </View>
           <Text style={styles.text}>{message}</Text>
         </View>
@@ -24,34 +23,42 @@ export default function SuccessModal({ visible, message = "Transaction saved!" }
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.18)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
   },
   modal: {
     backgroundColor: '#fff',
-    borderRadius: 24,
-    paddingVertical: 36,
-    paddingHorizontal: 40,
+    borderRadius: 20,
+    padding: 30,
     alignItems: 'center',
-    elevation: 8,
     shadowColor: '#000',
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
   },
   iconCircle: {
-    backgroundColor: '#E6F9ED',
-    borderRadius: 40,
     width: 80,
     height: 80,
-    alignItems: 'center',
+    borderRadius: 40,
+    backgroundColor: '#E8F5E8',
     justifyContent: 'center',
-    marginBottom: 16,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  iconText: {
+    fontSize: 40,
+    color: '#00BFA5',
+    fontWeight: 'bold',
   },
   text: {
-    fontSize: 20,
-    color: '#007E5A',
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
     textAlign: 'center',
   },
 }); 
