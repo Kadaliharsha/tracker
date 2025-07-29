@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 interface ActionButtonProps {
   icon: string;
@@ -9,7 +10,10 @@ interface ActionButtonProps {
 
 const ActionButton: React.FC<ActionButtonProps> = ({ icon, label, onPress }) => {
   return (
-    <TouchableOpacity style={styles.actionButton} onPress={onPress}>
+    <TouchableOpacity style={styles.actionButton} onPress={() => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      onPress();
+    }}>
       <View style={styles.actionIcon}>
         <Text style={styles.actionIconText}>{icon}</Text>
       </View>

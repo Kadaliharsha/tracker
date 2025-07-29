@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 const FILTERS = ['This Month', 'This Year', 'All Time'];
 
@@ -18,7 +19,10 @@ const FilterButtons: React.FC<FilterButtonsProps> = ({ activeFilter, onChange })
             styles.button,
             activeFilter === filter ? styles.activeButton : styles.inactiveButton,
           ]}
-          onPress={() => onChange(filter)}
+          onPress={() => {
+            Haptics.selectionAsync();
+            onChange(filter);
+          }}
         >
           <Text
             style={[

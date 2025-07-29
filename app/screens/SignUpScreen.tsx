@@ -4,9 +4,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { auth } from '../config/firebase';
-import { createUserWithEmailAndPassword, signOut } from 'firebase/auth';
+import { createUserWithEmailAndPassword, signOut, updateProfile } from 'firebase/auth';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../config/firebase';
 import Toast from 'react-native-toast-message';
 import SuccessModal from '../components/SuccessModal';
+import * as Haptics from 'expo-haptics';
 
 interface SignUpScreenProps {
   navigation: NativeStackNavigationProp<any>;
@@ -20,20 +23,32 @@ const SignUpScreen = ({ navigation }: SignUpScreenProps) => {
 
   const handleSignUp = () => {
     if (!fullName || !email || !password) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Please fill in all fields.');
       return;
     }
     createUserWithEmailAndPassword(auth, email, password)
-      .then(userCredentials => {
-        signOut(auth).then(() => {
-          setShowSuccess(true);
-          setTimeout(() => {
-            setShowSuccess(false);
-            // navigation.navigate('Login'); // Uncomment if you want to navigate
-          }, 1200);
+      .then(async (userCredentials) => {
+        // 1. Set displayName in Auth
+        await updateProfile(userCredentials.user, { displayName: fullName });
+        // 2. Create Firestore user document
+        await setDoc(doc(db, 'users', userCredentials.user.uid), {
+          fullName,
+          email,
+          createdAt: new Date(),
         });
+        // 3. Show success and let user stay signed in
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        setShowSuccess(true);
+        setTimeout(() => {
+          setShowSuccess(false);
+          // User stays signed in and will be redirected to Dashboard by your navigation logic
+        }, 1200);
       })
-      .catch(error => Alert.alert('Sign Up Error', error.message));
+      .catch(error => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert('Sign Up Error', error.message);
+      });
   };
 
   return (
@@ -48,10 +63,16 @@ const SignUpScreen = ({ navigation }: SignUpScreenProps) => {
           <TextInput style={styles.input} placeholder="Full Name" placeholderTextColor="#90A4AE" value={fullName} onChangeText={setFullName} />
           <TextInput style={styles.input} placeholder="Email Address" placeholderTextColor="#90A4AE" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
           <TextInput style={styles.input} placeholder="Password (min. 6 characters)" placeholderTextColor="#90A4AE" value={password} onChangeText={setPassword} secureTextEntry />
-          <TouchableOpacity style={styles.buttonPrimary} onPress={handleSignUp}>
+          <TouchableOpacity style={styles.buttonPrimary} onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            handleSignUp();
+          }}>
             <Text style={styles.buttonTextPrimary}>Sign Up</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+          <TouchableOpacity onPress={() => {
+            Haptics.selectionAsync();
+            navigation.navigate('Login');
+          }}>
             <Text style={styles.footerText}>Already have an account? <Text style={styles.footerLink}>Log In</Text></Text>
           </TouchableOpacity>
         </View>

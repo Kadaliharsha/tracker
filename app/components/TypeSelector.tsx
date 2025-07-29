@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 interface TypeSelectorProps {
   transactionType: 'income' | 'expense';
@@ -14,7 +15,10 @@ const TypeSelector: React.FC<TypeSelectorProps> = ({ transactionType, setTransac
           styles.typeButton, 
           transactionType === 'expense' ? styles.activeTypeButton : styles.inactiveTypeButton
         ]}
-        onPress={() => setTransactionType('expense')}
+        onPress={() => {
+          Haptics.selectionAsync();
+          setTransactionType('expense');
+        }}
       >
         <Text style={[
           styles.typeButtonText,
@@ -28,7 +32,10 @@ const TypeSelector: React.FC<TypeSelectorProps> = ({ transactionType, setTransac
           styles.typeButton, 
           transactionType === 'income' ? styles.activeTypeButton : styles.inactiveTypeButton
         ]}
-        onPress={() => setTransactionType('income')}
+        onPress={() => {
+          Haptics.selectionAsync();
+          setTransactionType('income');
+        }}
       >
         <Text style={[
           styles.typeButtonText,

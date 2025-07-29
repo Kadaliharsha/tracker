@@ -5,6 +5,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { PieChart, BarChart, LineChart } from 'react-native-chart-kit';
 import { getTransactions } from '../utils/storage';
 import FilterButtons from '../components/FilterButtons';
+import * as Haptics from 'expo-haptics';
+
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -65,6 +67,7 @@ export default function AnalyticsScreen() {
             setTransactions(data as Transaction[]);
           }
         } catch (e) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
           console.error("Failed to fetch analytics data:", e);
           if (mounted) {
             setError("Could not load analytics. Please check your internet connection.");
@@ -231,11 +234,17 @@ export default function AnalyticsScreen() {
                   hasLegend={true}
                 />
                 <View style={styles.yearSelectorContainer}>
-                  <TouchableOpacity onPress={() => setSelectedYear(selectedYear - 1)} disabled={selectedYear === minYear} style={styles.yearArrow}>
+                  <TouchableOpacity onPress={() => {
+                    Haptics.selectionAsync();
+                    setSelectedYear(selectedYear - 1);
+                  }} disabled={selectedYear === minYear} style={styles.yearArrow}>
                     <Text style={{ fontSize: 22, color: selectedYear === minYear ? '#ccc' : '#00BFA5' }}>{'<'}</Text>
                   </TouchableOpacity>
                   <Text style={styles.yearLabel}>{selectedYear}</Text>
-                  <TouchableOpacity onPress={() => setSelectedYear(selectedYear + 1)} disabled={selectedYear === maxYear} style={styles.yearArrow}>
+                  <TouchableOpacity onPress={() => {
+                    Haptics.selectionAsync();
+                    setSelectedYear(selectedYear + 1);
+                  }} disabled={selectedYear === maxYear} style={styles.yearArrow}>
                     <Text style={{ fontSize: 22, color: selectedYear === maxYear ? '#ccc' : '#00BFA5' }}>{'>'}</Text>
                   </TouchableOpacity>
                 </View>
@@ -304,7 +313,10 @@ function TypeSelector({ transactionType, setTransactionType }: { transactionType
         <TouchableOpacity
           key={opt.value}
           style={[styles.typeButton, transactionType === opt.value && styles.typeButtonActive]}
-          onPress={() => setTransactionType(opt.value as 'expense' | 'income')}
+          onPress={() => {
+            Haptics.selectionAsync();
+            setTransactionType(opt.value as 'expense' | 'income');
+          }}
         >
           <Text style={[styles.typeButtonText, transactionType === opt.value && styles.typeButtonTextActive]}>{opt.label}</Text>
         </TouchableOpacity>

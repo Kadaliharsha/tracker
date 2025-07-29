@@ -3,6 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, StatusBar } from 'reac
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import * as Haptics from 'expo-haptics';
 
 interface GetStartedScreenProps {
   navigation: NativeStackNavigationProp<any>;
@@ -23,10 +24,18 @@ const GetStartedScreen = ({ navigation }: GetStartedScreenProps) => {
       <Text style={styles.description}>
         Track your income and expenses effortlessly. Get insights, manage your budget, and achieve your financial goals!
       </Text>
-      <TouchableOpacity style={styles.button} onPress={() => handleProceed('Login')}>
+      <TouchableOpacity style={styles.button} onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        handleProceed('Login');
+      }}
+        >
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
-      <TouchableOpacity style={[styles.button, styles.signupButton]} onPress={() => handleProceed('SignUp')}>
+      <TouchableOpacity style={[styles.button, styles.signupButton]} onPress={() => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        handleProceed('SignUp')
+      }}
+        >
         <Text style={styles.buttonText}>Sign Up</Text>
       </TouchableOpacity>
     </View>

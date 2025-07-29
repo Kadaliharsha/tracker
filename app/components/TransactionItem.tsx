@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import * as Haptics from 'expo-haptics';
 
 interface TransactionItemProps {
   icon: string;
@@ -12,7 +13,12 @@ interface TransactionItemProps {
 }
 
 const TransactionItem: React.FC<TransactionItemProps> = ({ icon, title, category, amount, date, type, onLongPress }) => (
-  <TouchableOpacity onLongPress={onLongPress} activeOpacity={0.8} style={styles.card}>
+  <TouchableOpacity onLongPress={() => {
+    if (onLongPress) {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      onLongPress();
+    }
+  }} activeOpacity={0.8} style={styles.card}>
     <View style={styles.transactionItem}>
       <View style={styles.transactionIcon}>
         <Text style={styles.transactionIconText}>{icon}</Text>

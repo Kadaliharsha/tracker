@@ -12,6 +12,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import UndoSnackbar from '../components/UndoSnackbar';
 import { Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 interface Transaction {
   id: string;
@@ -52,6 +53,7 @@ const AllTransactionsScreen = () => {
       setTransactions(txns);
       setLoading(false);
     }, (error) => {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       console.error('[DEBUG] Failed to fetch transactions:', error);
       setLoading(false);
     });
@@ -64,9 +66,11 @@ const AllTransactionsScreen = () => {
 
   const exportCSV = async () => {
     if (!transactions.length) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('No data', 'There are no transactions to export.');
       return;
     }
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     const csv = transactionsToCSV(transactions);
     const path = FileSystem.documentDirectory + 'transactions.csv';
     await FileSystem.writeAsStringAsync(path, csv, { encoding: FileSystem.EncodingType.UTF8 });
@@ -94,6 +98,8 @@ const AllTransactionsScreen = () => {
       const options = ['Edit', 'Delete', 'Cancel'];
       const destructiveButtonIndex = 1;
       const cancelButtonIndex = 2;
+      // Add haptic feedback before showing action sheet/alert
+      Haptics.selectionAsync();
       if (Platform.OS === 'ios') {
         ActionSheetIOS.showActionSheetWithOptions(
           {
@@ -144,18 +150,26 @@ const AllTransactionsScreen = () => {
           {
             text: 'Delete',
             style: 'destructive',
-            onPress: () => {
-              // Optimistic UI: remove from UI immediately
-              setTransactions(prev => prev.filter(txn => txn.id !== item.id));
-              setDeletedTxn(item);
-              setShowUndo(true);
-              // Start timer to delete from Firestore after 3s
-              if (undoTimer.current) clearTimeout(undoTimer.current);
-              undoTimer.current = setTimeout(async () => {
-                await deleteTransaction(item.id);
-                setShowUndo(false);
-                setDeletedTxn(null);
-              }, 3000);
+            onPress: async () => {
+              try {
+                // Optimistic UI: remove from UI immediately
+                setTransactions(prev => prev.filter(txn => txn.id !== item.id));
+                setDeletedTxn(item);
+                setShowUndo(true);
+                // Start timer to delete from Firestore after 3s
+                if (undoTimer.current) clearTimeout(undoTimer.current);
+                undoTimer.current = setTimeout(async () => {
+                  await deleteTransaction(item.id);
+                  setShowUndo(false);
+                  setDeletedTxn(null);
+                  // Haptic feedback for success
+                  Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+                }, 3000);
+              } catch (error) {
+                // Haptic feedback for error
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                Alert.alert('Error', 'Failed to delete transaction.');
+              }
             },
           },
         ]

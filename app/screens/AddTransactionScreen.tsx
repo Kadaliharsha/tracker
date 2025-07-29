@@ -18,6 +18,8 @@ import TypeSelector from '../components/TypeSelector';
 import { saveTransaction, updateTransaction } from '../utils/storage';
 import { Picker } from '@react-native-picker/picker';
 // import DateTimePickerModal from 'react-native-modal-datetime-picker';
+import * as Haptics from 'expo-haptics';
+
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Toast from 'react-native-toast-message';
 import SuccessModal from '../components/SuccessModal';
@@ -104,24 +106,28 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
   const handleSaveTransaction = async (addAnother = false) => {
     const user = getAuth().currentUser;
     if (!user) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'You must be logged in to add a transaction.');
       return;
     }
     // --- Enhanced validation ---
     // 1. Amount : not empty, valid number, not negative
     if (!rawAmount || isNaN(Number(rawAmount)) || Number(rawAmount) <= 0) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Please enter a valid, positive amount.');
       return;
     }
 
     // 2. Category: must be selected
     if (!category) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Please select a category.');
       return;
     }
 
     // 3. If category is 'Other', custom category must be provided
     if (category === 'Other' && !customCategory.trim()) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Please enter a custom category.');
       return;
     }
@@ -142,6 +148,7 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
       success = await saveTransaction(transaction);
     }
     if (success) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       setShowSuccess(true);
       setAmount('');
       setDescription('');
@@ -155,6 +162,7 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
         }
       }, 1200);
     } else {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', editMode ? 'Failed to update transaction. Please try again.' : 'Failed to save transaction. Please try again.');
     }
   };
@@ -258,7 +266,10 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
           <Text style={styles.label}>Date</Text>
           <Calendar
             current={date.toISOString().split('T')[0]}
-            onDayPress={day => setDate(new Date(day.dateString))}
+            onDayPress={day => {
+              Haptics.selectionAsync();
+              setDate(new Date(day.dateString));
+            }}
             markedDates={{
               [date.toISOString().split('T')[0]]: { selected: true, selectedColor: '#00BFA5' }
             }}
@@ -274,13 +285,19 @@ const AddTransactionScreen = ({ route }: AddTransactionScreenProps) => {
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 1 }}>
             <TouchableOpacity
               style={[styles.saveButton, { flex: 1, marginRight: 8 }]}
-              onPress={() => handleSaveTransaction(false)}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                handleSaveTransaction(false);
+              }}
             >
               <Text style={styles.saveButtonText}>{editMode ? 'Update Transaction' : 'Save & Exit'}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.saveButton, { flex: 1, marginLeft: 8, backgroundColor: '#007E5A' }]}
-              onPress={() => handleSaveTransaction(true)}
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                handleSaveTransaction(true);
+              }}
             >
               <Text style={styles.saveButtonText}>Save & Add Another</Text>
             </TouchableOpacity>

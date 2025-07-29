@@ -7,6 +7,7 @@ import { auth } from '../config/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import Toast from 'react-native-toast-message';
 import SuccessModal from '../components/SuccessModal';
+import * as Haptics from 'expo-haptics';
 
 interface LoginScreenProps {
   navigation: NativeStackNavigationProp<any>;
@@ -19,19 +20,24 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
 
   const handleLogin = () => {
     if (!email || !password) {
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       Alert.alert('Error', 'Please enter both email and password.');
       return;
     }
     signInWithEmailAndPassword(auth, email, password)
       .then(userCredentials => {
         console.log('Logged in with:', userCredentials.user.email);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setShowSuccess(true);
         setTimeout(() => {
           setShowSuccess(false);
           // navigation.replace('Dashboard'); // Uncomment if you want to navigate
         }, 1200);
       })
-      .catch(error => Alert.alert('Login Error', error.message));
+      .catch(error => {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        Alert.alert('Login Error', error.message);
+      });
   };
 
   return (
@@ -73,13 +79,22 @@ const LoginScreen = ({ navigation }: LoginScreenProps) => {
                 secureTextEntry 
               />
             </View>
-            
-          <TouchableOpacity style={styles.buttonPrimary} onPress={handleLogin}>
-              <Text style={styles.buttonTextPrimary}>Sign In</Text>
+          
+          <TouchableOpacity
+            style={styles.buttonPrimary}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              handleLogin();
+            }}
+          >
+            <Text style={styles.buttonTextPrimary}>Sign In</Text>
           </TouchableOpacity>
           </View>
           
-          <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+          <TouchableOpacity onPress={() => {
+            Haptics.selectionAsync();
+            navigation.navigate('SignUp');
+          }}>
             <Text style={styles.footerText}>Don't have an account? <Text style={styles.footerLink}>Sign Up</Text></Text>
           </TouchableOpacity>
         </View>

@@ -7,7 +7,7 @@ import { onSnapshot, collection, query, orderBy } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { getAuth } from 'firebase/auth';
 import { migrateAsyncStorageToFirestore } from '../utils/storage';
-
+import * as Haptics from 'expo-haptics';
 import { auth } from '../config/firebase';
 import { signOut } from 'firebase/auth';
 import TransactionItem from '../components/TransactionItem';
@@ -78,6 +78,8 @@ const DashboardScreen = () => {
       const options = ['Edit', 'Delete', 'Cancel'];
       const destructiveButtonIndex = 1;
       const cancelButtonIndex = 2;
+      // Add haptic feedback before showing action sheet/alert
+      Haptics.selectionAsync();
       if (Platform.OS === 'ios') {
         ActionSheetIOS.showActionSheetWithOptions(
           {
@@ -119,7 +121,7 @@ const DashboardScreen = () => {
       }
     };
 
-    const confirmDelete = (id: string) => {
+    const confirmDelete = async (id: string) => {
       Alert.alert(
         'Delete Transaction',
         'Are you sure you want to delete this transaction?',
@@ -129,10 +131,19 @@ const DashboardScreen = () => {
             text: 'Delete',
             style: 'destructive',
             onPress: async () => {
+              try {
               console.log('Attempting to delete Firestore doc ID:', id);
               setTransactions(prev => prev.filter(txn => txn.id !== id));
               const result = await deleteTransaction(id);
               console.log('Delete result:', result);
+                // Haptic feedback for success
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+              } catch (error) {
+                // Haptic feedback for error
+                Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+                console.error('Delete failed:', error);
+                Alert.alert('Error', 'Failed to delete transaction.');
+              }
             },
           },
         ]
@@ -163,6 +174,7 @@ const DashboardScreen = () => {
           <Text style={styles.subtitle}>Track your money smartly</Text>
         </View>
         <TouchableOpacity style={styles.profileButton} onPress={async () => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
           // First, unsubscribe from the listener
           if (unsubscribeRef.current) {
             console.log('DEBUG: Unsubscribing from Firestore listener...');
@@ -196,19 +208,28 @@ const DashboardScreen = () => {
           <ActionButton 
             icon="+"
             label="Add Transaction"
-            onPress={() => navigation.navigate('Add Transaction')}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              navigation.navigate('Add Transaction');
+            }}
           />
           <ActionButton 
             icon="📊"
             label="Analytics"
-            onPress={() => navigation.navigate('Analytics')}
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              navigation.navigate('Analytics');
+            }}
           />
         </View>
       </View>
 
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Recent Transactions</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('AllTransactions')}>
+        <TouchableOpacity onPress={() => {
+          Haptics.selectionAsync();
+          navigation.navigate('AllTransactions');
+        }}>
             <Text style={styles.viewAllText}>View All</Text>
         </TouchableOpacity>
       </View>
@@ -228,7 +249,10 @@ const DashboardScreen = () => {
               amount={`${item.type === 'income' ? '+' : '-'}₹${Number(item.amount).toFixed(2)}`}
               type={item.type}
               date={new Date(item.date).toLocaleDateString()}
-              onLongPress={() => handleTransactionAction(item)}
+              onLongPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                handleTransactionAction(item);
+              }}
             />
           )}
           ListEmptyComponent={
